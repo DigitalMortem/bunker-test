@@ -464,7 +464,10 @@
         <div class="game-main">
           <section>
             <section class="panel">
-              <h2>Состояние бункера</h2>
+              <div class="card-title">
+                <h2>Состояние бункера</h2>
+                <button class="secondary" onclick="showPage('home')">Главная</button>
+              </div>
               <div id="scenario" class="scenario">Сценарий появится после запуска.</div>
               <div id="bunkerInfo" class="bunker-card muted">Параметры бункера появятся после запуска.</div>
               <div class="kv">
@@ -474,30 +477,9 @@
                 <div><span>Состояние</span><strong id="gameConditionView">—</strong></div>
               </div>
               <div class="row" style="margin-top:12px;">
-                <button class="secondary" onclick="showPage('home')">Главная</button>
                 <button class="good host-only" onclick="startRoundOpening()">Старт</button>
                 <button class="ghost host-only" onclick="startVotingPhase()">Запустить голосование</button>
                 <button class="secondary host-only" onclick="forceRoundEvent()">Тест события</button>
-              </div>
-            </section>
-
-            <section class="panel timer-panel">
-              <h2>Таймер</h2>
-              <div class="timer" id="timer">02:00</div>
-              <div class="progress"><div id="timerBar"></div></div>
-              <p class="small">Время выбирает ведущий.</p>
-              <select id="hostTimerSelect" style="width:100%; margin-bottom:10px;" onchange="setHostTimer()">
-                <option value="30">30 секунд</option>
-                <option value="60">1 минута</option>
-                <option value="120" selected>2 минуты</option>
-                <option value="180">3 минуты</option>
-                <option value="300">5 минут</option>
-                <option value="600">10 минут</option>
-              </select>
-              <div class="row">
-                <button onclick="startTimer()">Старт</button>
-                <button class="secondary" onclick="pauseTimer()">Пауза</button>
-                <button class="secondary" onclick="resetTimer()">Сброс</button>
               </div>
             </section>
 
@@ -572,6 +554,7 @@
     let suppressOnlineWrite = false;
     let subscribedRoomId = '';
     let unsubscribeGame = null;
+    const REVEAL_TURN_SECONDS = 30;
     let unsubscribeVotes = null;
 
     const packs =  {
@@ -1427,7 +1410,7 @@
 
     function startRoundOpening() {
       if (!game) return alert('Сначала запусти игру.');
-      if (!isCurrentHost()) return alert('Старт раунда может запускать только ведущий.');
+      if (!isCurrentGameHost()) return alert('Старт раунда может запускать только ведущий.');
       if (game.roundOpeningActive) return alert('Раунд уже идёт.');
 
       const queue = alivePlayers().map(p => p.id);
@@ -1438,7 +1421,7 @@
       game.turnQueue = queue;
       game.turnIndex = 0;
       game.currentTurnPlayerId = queue[0];
-      game.turnTimeLeft = 10;
+      game.turnTimeLeft = REVEAL_TURN_SECONDS;
       game.turnCooldownLeft = 0;
       log(`Раунд ${game.round}: старт раскрытия характеристик. Первый игрок: ${byId(game.currentTurnPlayerId)?.name || 'игрок'}.`);
       saveState();
@@ -1478,7 +1461,7 @@
       }
 
       game.currentTurnPlayerId = game.turnQueue[game.turnIndex];
-      game.turnTimeLeft = 10;
+      game.turnTimeLeft = REVEAL_TURN_SECONDS;
       game.turnCooldownLeft = 0;
       const current = byId(game.currentTurnPlayerId);
       if (current) log(`Очередь открытия характеристики: ${current.name}.`);
@@ -1523,11 +1506,27 @@
       log('Ведущий запустил анонимное голосование.');
     }
 
-    function reveal(playerId, key) {
+    
+    function canRevealTrait(p, key) {
+      if (!game || !p || !p.alive || p.exiled || p.revealed[key]) return false;
+      if (p.name !== nickname) return false;
+      if (!game.roundOpeningActive) return false;
+      if (game.currentTurnPlayerId !== p.id) return false;
+      if ((game.turnTimeLeft || 0) <= 0) return false;
+      return true;
+    }
+
+function reveal(playerId, key) {
       const p = byId(playerId);
-      if (!p || !p.alive || p.exiled) return;
+      if (!canRevealTrait(p, key)) {
+        showToast('Открывать можно только свои характеристики, только после старта ведущего и только в свой ход.', 3500);
+        return;
+      }
+
       p.revealed[key] = true;
-      log(`${p.name} раскрывает: ${label(key)} — ${p.cards[key]}.`);
+      log(`${p.name} раскрывает: ${label(key)} — ${key === 'health' ? healthView(p) : p.cards[key]}.`);
+      saveState();
+      renderAll();
     }
 
     function label(key) {
@@ -1608,8 +1607,7 @@
       timerInterval = setInterval(() => {
         timerLeft--;
         if (timerLeft <= 0) { timerLeft = 0; pauseTimer(); log('Время ведущего вышло.'); }
-        renderTimer();
-      }, 1000);
+        }, 1000);
     }
     function pauseTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
     function setHostTimer() {
@@ -1620,7 +1618,6 @@
       const r = room();
       if (r) r.timer = timerTotal;
       saveState();
-      renderTimer();
     }
     function resetTimer() { pauseTimer(); timerLeft = timerTotal || 120; renderTimer(); }
 
@@ -1793,7 +1790,7 @@
           <div class="player-title">
             <div>
               <h3>${p.name}</h3>
-              <div class="private-note">${p.name === nickname ? 'Твои характеристики видны тебе. Остальным показывай только открытые карты.' : 'Карточка игрока. В онлайн-версии закрытые данные будут видны только владельцу.'}</div>
+              <div class="private-note">${p.name === nickname ? 'Твои характеристики видны тебе. Открывать их для остальных можно только после старта ведущего и только в свой ход.' : 'Карточка игрока. Закрытые характеристики может раскрывать только сам владелец в свой ход.'}</div>
               ${turnStatusHtml(p)}
             </div>
             <span class="badge">${p.winner ? 'выжил' : p.status === 'погиб' ? 'погиб · наблюдает' : p.exiled ? 'изгнан · наблюдает' : p.alive ? (p.host ? 'ведущий' : 'в игре') : 'изгнан · наблюдает'}</span>
@@ -1831,7 +1828,7 @@
       const isOwner = p.name === nickname;
       const canSee = isOwner || p.revealed[key] || !p.alive || p.exiled || p.winner;
       const value = canSee ? (key === 'health' ? healthView(p) : p.cards[key]) : '<span class="hidden">закрыто</span>';
-      const button = p.alive && !p.exiled && !p.revealed[key] ? `<button class="secondary" onclick="reveal(${p.id}, '${key}')">Открыть</button>` : '';
+      const button = canRevealTrait(p, key) ? `<button class="secondary" onclick="reveal(${p.id}, '${key}')">Открыть</button>` : '';
       return `<div class="trait"><div><strong>${label(key)}:</strong> ${value}</div>${button}</div>`;
     }
 
@@ -1912,7 +1909,6 @@
       renderLobby();
       renderGame();
       renderTabs();
-      renderTimer();
       renderChronicles();
     }
 
