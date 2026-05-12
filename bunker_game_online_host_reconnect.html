@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Бункер: Судный день</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #07090b;
+      --panel: rgba(16, 22, 26, 0.94);
+      --panel2: rgba(25, 33, 38, 0.96);
+      --line: rgba(226,177,95,0.18);
+      --accent: #e2b15f;
+      --accent2: #7ed7c1;
+      --danger: #e05555;
+      --good: #45b879;
+      --muted: #93a0a6;
+      --text: #edf3ef;
+      --dark: #0c1114;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(226, 177, 95, 0.17), transparent 34%),
+        radial-gradient(circle at top right, rgba(126, 215, 193, 0.11), transparent 28%),
+        linear-gradient(135deg, #050607 0%, #10171a 48%, #06090b 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent 86%);
+    }
+
+    header {
+      padding: 24px 20px 18px;
+      text-align: center;
+      border-bottom: 1px solid rgba(226,177,95,0.25);
+      background: rgba(8, 11, 13, 0.8);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 56px);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #ffe1a6;
+      text-shadow: 0 0 28px rgba(226,177,95,0.28);
+    }
+
+    header p { color: var(--muted); margin: 8px 0 0; }
+
+    main { max-width: 1360px; margin: 0 auto; padding: 22px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .hero { min-height: 62vh; display: grid; place-items: center; }
+
+    .hero-card {
+      width: min(760px, 100%);
+      text-align: center;
+      padding: 34px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(16,22,26,0.98), rgba(25,33,38,0.92));
+      border: 1px solid rgba(226,177,95,0.22);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.42);
+    }
+
+    .hero-card h2 { font-size: clamp(28px, 4vw, 44px); margin-bottom: 10px; }
+    .hero-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
+
+    .topbar { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .layout { display: grid; grid-template-columns: 1fr; gap: 18px; }
+    .game-main { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; }
+    #page-game .panel:not(.timer-panel):not(.round-event-panel) { padding: 22px; }
+    #page-game .game-main > section { min-width: 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .players-list { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .player-card.compact { padding: 14px; }
+    .traits-board { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+    .specials-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .private-note { color: var(--accent2); font-size: 12px; margin-top: -6px; margin-bottom: 10px; }
+    .turn-timer { margin-top: 6px; color: #ffe1a6; font-size: 13px; font-weight: 800; }
+    .active-turn-card { outline: 2px solid var(--accent); box-shadow: 0 0 26px rgba(226,177,95,0.25); }
+
+    .stat, .panel, .player-card, .room-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.34);
+      backdrop-filter: blur(10px);
+    }
+
+    .stat { border-radius: 18px; padding: 14px; }
+    .stat span { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .stat strong { display: block; margin-top: 5px; font-size: 22px; color: #fff2d2; }
+
+    .panel { border-radius: 22px; padding: 18px; margin-bottom: 18px; }
+    h2 { margin: 0 0 14px; color: #ffe1a6; }
+    h3 { margin: 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    input, select, button, textarea { border: none; border-radius: 12px; padding: 12px 13px; font-size: 15px; }
+    input, select, textarea { background: #0e1518; color: #fff; outline: 1px solid #314047; min-width: 170px; }
+    textarea { width: 100%; min-height: 84px; resize: vertical; }
+
+    button {
+      background: linear-gradient(135deg, #d19b42, #f0c879);
+      color: #14100a;
+      cursor: pointer;
+      font-weight: 800;
+      transition: 0.18s;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.24);
+    }
+
+    button.big { font-size: 18px; padding: 18px; border-radius: 18px; }
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    button.secondary { background: #1b272d; color: #dbe6e4; outline: 1px solid #3c4a51; }
+    button.danger { background: linear-gradient(135deg, #c94545, #f07373); color: #fff; }
+    button.good { background: linear-gradient(135deg, #34a66b, #67d99a); color: #05120b; }
+    button.ghost { background: transparent; color: #ffe1a6; outline: 1px solid rgba(226,177,95,0.3); }
+    button.active { outline: 2px solid #ffe1a6; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .room-card, .player-card { border-radius: 20px; padding: 16px; position: relative; overflow: hidden; }
+    .room-card::before, .player-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(226,177,95,0.08), transparent 36%);
+      pointer-events: none;
+    }
+
+    .room-card > *, .player-card > * { position: relative; z-index: 1; }
+    .player-card.dead { opacity: 0.42; filter: grayscale(1); }
+    .player-card.exiled { opacity: 0.42; filter: grayscale(1); background: rgba(8, 10, 12, 0.96); }
+    .player-card.winner { outline: 2px solid var(--good); }
+
+    .card-title, .player-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+
+    .badge {
+      background: #182329;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: #c9d5d2;
+      font-size: 12px;
+      border: 1px solid #314047;
+      white-space: nowrap;
+    }
+
+    .trait {
+      padding: 10px;
+      background: rgba(8, 12, 14, 0.78);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 56px;
+    }
+
+    .trait strong { color: var(--accent2); }
+    .hidden { color: #69777b; font-style: italic; }
+    .scenario { line-height: 1.7; color: #d7e2df; background: rgba(8,12,14,0.62); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+    .small { color: var(--muted); font-size: 13px; }
+    .muted { color: var(--muted); }
+
+    .event-card, .bunker-card, .history-card {
+      background: rgba(8,12,14,0.78);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .history-card strong { color: #ffe1a6; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .vote-line { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 10px; }
+    .vote-list { display: grid; gap: 10px; }
+    .vote-item { background: rgba(8,12,14,0.78); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; }
+    .vote-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .vote-bar { height: 9px; border-radius: 999px; background: #0e1518; overflow: hidden; outline: 1px solid #28363b; }
+    .vote-bar > div { height: 100%; background: linear-gradient(90deg, #e2b15f, #7ed7c1); width: 0%; transition: 0.25s; }
+
+    .log {
+      background: rgba(5, 7, 8, 0.85);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 12px;
+      min-height: 150px;
+      max-height: 300px;
+      overflow-y: auto;
+      color: #c7d3d0;
+      line-height: 1.55;
+    }
+
+    .progress { width: 100%; height: 10px; background: #0e1518; border-radius: 999px; overflow: hidden; outline: 1px solid #28363b; }
+    .progress > div { height: 100%; background: linear-gradient(90deg, #e2b15f, #7ed7c1); width: 0%; transition: 0.25s; }
+    .timer { font-size: 24px; font-weight: 900; color: #ffe1a6; letter-spacing: 1px; }
+    .timer-panel { padding: 12px !important; position: static; width: 100%; max-width: none; }
+    .timer-panel h2 { font-size: 16px; margin-bottom: 6px; }
+    .timer-panel .small { font-size: 11px; margin: 6px 0; }
+    .timer-panel select { padding: 8px 9px; min-width: 0; }
+    .timer-panel button { padding: 8px 9px; font-size: 12px; }
+    .timer-panel .row { gap: 6px; }
+    .timer-panel .progress { height: 7px; }
+
+    .round-event-panel { padding: 12px !important; width: 100%; max-width: none; }
+    .round-event-panel h2 { font-size: 16px; margin-bottom: 8px; }
+    .event-outcome { color: #ffe1a6; font-weight: 800; }
+
+    .toast {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 200;
+      min-width: 260px;
+      max-width: 360px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(16, 22, 26, 0.96);
+      border: 1px solid rgba(226,177,95,0.35);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+      color: #fff2d2;
+      display: none;
+    }
+
+    .event-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 180;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.62);
+      backdrop-filter: blur(4px);
+      padding: 18px;
+    }
+
+    .event-modal {
+      width: min(640px, 100%);
+      border-radius: 24px;
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(16,22,26,0.98), rgba(25,33,38,0.96));
+      border: 1px solid rgba(226,177,95,0.35);
+      box-shadow: 0 24px 90px rgba(0,0,0,0.58);
+      text-align: center;
+    }
+
+    .event-modal h2 { margin-bottom: 12px; }
+    .event-modal-content { line-height: 1.65; color: #edf3ef; }
+
+    .room-code { font-size: 38px; font-weight: 900; letter-spacing: 4px; color: #7ed7c1; text-shadow: 0 0 18px rgba(126,215,193,0.28); }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #1b272d; border: 1px solid rgba(226,177,95,0.28); margin-right: 8px; }
+
+    .kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+    .kv div { background: rgba(5,7,8,0.45); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px; }
+    .kv span { display: block; color: var(--muted); font-size: 12px; }
+    .kv strong { color: #fff2d2; }
+
+    .host-label { color: var(--accent2); font-weight: 800; }
+
+    @media (max-width: 920px) {
+      .layout, .topbar, .split, .hero-actions, .kv, .game-main { grid-template-columns: 1fr; }
+      .vote-line { grid-template-columns: 1fr; }
+      input, select, button { width: 100%; }
+      header { position: static; }
+      .timer-panel, .round-event-panel { position: static; width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+  <div id="eventModalBackdrop" class="event-modal-backdrop">
+    <div class="event-modal">
+      <h2>Исход события</h2>
+      <div id="eventModalContent" class="event-modal-content"></div>
+      <button class="secondary" style="margin-top:16px;" onclick="hideEventModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <header>
+    <h1>Бункер: Судный день</h1>
+    <p id="headerSubtitle">Введите никнейм, создайте лобби и запустите партию.</p>
+  </header>
+
+  <main>
+    <section id="page-register" class="page active">
+      <div class="hero">
+        <div class="hero-card">
+          <h2>Регистрация игрока</h2>
+          <p class="muted">Для входа нужен только никнейм. Без паролей, почты и лишних полей.</p>
+          <div class="row" style="justify-content:center; margin-top:18px;">
+            <input id="nicknameInput" placeholder="Введите никнейм" onkeydown="if(event.key==='Enter') saveNickname()" />
+            <button onclick="saveNickname()">Войти</button>
+          </div>
+          <p class="small">После входа откроется главная страница с созданием и поиском лобби.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-home" class="page">
+      <div class="hero">
+        <div class="hero-card">
+          <h2>Главная</h2>
+          <p>Игрок: <strong id="currentNameView">—</strong></p>
+          <div class="row" style="justify-content:center; margin-top:12px;">
+            <input id="changeNicknameInput" placeholder="Новый никнейм" />
+            <button class="secondary" onclick="changeNickname()">Сменить ник</button>
+          </div>
+          <div class="hero-actions">
+            <button class="big" onclick="openCreateLobby()">Создать лобби</button>
+            <button class="big secondary" onclick="showPage('find')">Найти лобби</button>
+            <button class="big secondary" onclick="goToCurrentRoom()">Вернуться в активную игру</button>
+          </div>
+          <p class="small">Активные комнаты пока хранятся в этом браузере через localStorage. Настоящий онлайн добавим отдельным этапом.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-find" class="page">
+      <section class="panel">
+        <div class="card-title">
+          <div>
+            <h2>Активные лобби</h2>
+            <p class="small">Здесь показываются созданные и ещё не завершённые комнаты.</p>
+          </div>
+          <button class="secondary" onclick="showPage('home')">Назад</button>
+        </div>
+        <div id="activeRoomsGrid" class="grid"></div>
+      </section>
+    </section>
+
+    <section id="page-create" class="page">
+      <section class="panel">
+        <div class="card-title">
+          <div>
+            <h2>Создание лобби</h2>
+            <p class="small">Выбери тему, размер комнаты и базовые правила.</p>
+          </div>
+          <button class="secondary" onclick="showPage('home')">Назад</button>
+        </div>
+        <div class="split">
+          <div>
+            <label class="small">Название комнаты</label><br>
+            <input id="lobbyName" placeholder="Например: Ночной бункер" style="width:100%; margin:6px 0 12px;" />
+
+            <label class="small">Пак/тема игры</label><br>
+            <select id="packSelect" style="width:100%; margin:6px 0 12px;">
+              <option value="apocalypse">Апокалипсис</option>
+              <option value="zombie">Зомби</option>
+              <option value="fantasy">Фэнтези</option>
+              <option value="maniac">Маньяк</option>
+              <option value="space">Космос</option>
+              <option value="virus">Вирус</option>
+              <option value="winter">Ледниковый период</option>
+              <option value="cyber">Киберпанк</option>
+              <option value="island">Остров после катастрофы</option>
+              <option value="underwater">Подводный бункер</option>
+            </select>
+
+            <label class="small">Всего игроков</label><br>
+            <select id="maxPlayersSelect" style="width:100%; margin:6px 0 12px;">
+              <option value="4">4 игрока</option>
+              <option value="5">5 игроков</option>
+              <option value="6" selected>6 игроков</option>
+              <option value="7">7 игроков</option>
+              <option value="8">8 игроков</option>
+              <option value="10">10 игроков</option>
+              <option value="12">12 игроков</option>
+            </select>
+          </div>
+          <div>
+            <label class="small">Мест в бункере</label><br>
+            <select id="seatSelect" style="width:100%; margin:6px 0 12px;">
+              <option value="auto">Автоматически</option>
+              <option value="1">1 место</option>
+              <option value="2">2 места</option>
+              <option value="3">3 места</option>
+              <option value="4">4 места</option>
+              <option value="5">5 мест</option>
+              <option value="6">6 мест</option>
+            </select>
+
+            <label class="small">Выживать лет</label><br>
+            <select id="yearsSelect" style="width:100%; margin:6px 0 12px;">
+              <option value="1">1 год</option>
+              <option value="2" selected>2 года</option>
+              <option value="3">3 года</option>
+              <option value="5">5 лет</option>
+              <option value="10">10 лет</option>
+            </select>
+          </div>
+        </div>
+        <button class="good big" onclick="createLobbyFromForm()">Создать комнату</button>
+      </section>
+    </section>
+
+    <section id="page-lobby" class="page">
+      <div class="topbar">
+        <div class="stat"><span>ID комнаты</span><strong id="lobbyCodeView">----</strong></div>
+        <div class="stat"><span>Ведущий</span><strong id="lobbyHostView">—</strong></div>
+        <div class="stat"><span>Пак</span><strong id="lobbyPackView">—</strong></div>
+        <div class="stat"><span>Игроки</span><strong id="lobbyCountView">0/0</strong></div>
+      </div>
+
+      <div class="layout">
+        <section>
+          <section class="panel">
+            <div class="card-title">
+              <div>
+                <h2>Лобби ожидания</h2>
+                <p class="small">Здесь видны ID комнаты, ведущий, статус и основные параметры партии.</p>
+              </div>
+              <button class="secondary" onclick="showPage('home')">Главная</button>
+            </div>
+            <div class="room-code" id="bigRoomCode">----</div>
+            <div class="kv">
+              <div><span>Название</span><strong id="lobbyNameView">—</strong></div>
+              <div><span>Статус</span><strong id="lobbyStatusView">—</strong></div>
+              <div><span>Мест в бункере</span><strong id="lobbySeatsView">—</strong></div>
+              <div><span>Выживать</span><strong id="lobbyYearsView">—</strong></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Управление лобби</h2>
+            <div id="lobbyControls"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Подключенные игроки</h2>
+            <div id="lobbyPlayersGrid" class="grid"></div>
+          </section>
+        </section>
+      </div>
+    </section>
+
+    <section id="page-game" class="page">
+      <div class="topbar">
+        <div class="stat"><span>Раунд</span><strong id="statRound">0</strong></div>
+        <div class="stat"><span>Мест</span><strong id="statSeats">—</strong></div>
+        <div class="stat"><span>Живых</span><strong id="statAlive">0</strong></div>
+      </div>
+
+      <div class="layout">
+        <div class="game-main">
+          <section>
+            <section class="panel">
+              <h2>Состояние бункера</h2>
+              <div id="scenario" class="scenario">Сценарий появится после запуска.</div>
+              <div id="bunkerInfo" class="bunker-card muted">Параметры бункера появятся после запуска.</div>
+              <div class="kv">
+                <div><span>Выживать</span><strong id="gameYearsView">—</strong></div>
+                <div><span>Еды осталось</span><strong id="gameFoodView">—</strong></div>
+                <div><span>Воды осталось</span><strong id="gameWaterView">—</strong></div>
+                <div><span>Состояние</span><strong id="gameConditionView">—</strong></div>
+              </div>
+              <div class="row" style="margin-top:12px;">
+                <button class="secondary" onclick="showPage('home')">Главная</button>
+                <button class="good host-only" onclick="startRoundOpening()">Старт</button>
+                <button class="ghost host-only" onclick="startVotingPhase()">Запустить голосование</button>
+                <button class="secondary host-only" onclick="forceRoundEvent()">Тест события</button>
+              </div>
+            </section>
+
+            <section class="panel timer-panel">
+              <h2>Таймер</h2>
+              <div class="timer" id="timer">02:00</div>
+              <div class="progress"><div id="timerBar"></div></div>
+              <p class="small">Время выбирает ведущий.</p>
+              <select id="hostTimerSelect" style="width:100%; margin-bottom:10px;" onchange="setHostTimer()">
+                <option value="30">30 секунд</option>
+                <option value="60">1 минута</option>
+                <option value="120" selected>2 минуты</option>
+                <option value="180">3 минуты</option>
+                <option value="300">5 минут</option>
+                <option value="600">10 минут</option>
+              </select>
+              <div class="row">
+                <button onclick="startTimer()">Старт</button>
+                <button class="secondary" onclick="pauseTimer()">Пауза</button>
+                <button class="secondary" onclick="resetTimer()">Сброс</button>
+              </div>
+            </section>
+
+            <section class="panel" id="votingPanel" style="display:none;">
+              <h2>Голосование</h2>
+              <p class="small">Голосование анонимное. После голоса отображается количество голосов и процент рядом с каждым игроком.</p>
+              <div id="anonymousVoteList" class="vote-list"></div>
+            </section>
+
+            <section class="panel">
+              <h2>Игроки и характеристики</h2>
+              <div class="tabs">
+                <button class="secondary active" id="tabAll" onclick="setFilter('all')">Все</button>
+                <button class="secondary" id="tabAlive" onclick="setFilter('alive')">В игре</button>
+                <button class="secondary" id="tabDead" onclick="setFilter('dead')">Исключённые</button>
+              </div>
+              <div id="playersGrid" class="players-list"></div>
+            </section>
+          </section>
+          <section class="panel round-event-panel" id="eventPanel" style="display:none;">
+              <h2>Событие раунда</h2>
+              <div id="eventContent" class="event-card">Событие пока не активно.</div>
+              <button id="joinEventButton" class="secondary" onclick="joinRoundEvent()">Участвовать</button>
+            </section>
+        </div>
+
+        <section class="panel">
+          <h2>Журнал</h2>
+          <div id="log" class="log"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="page-chronicles" class="page">
+      <section class="panel">
+        <h2>Итоги партии</h2>
+        <div id="chroniclesSummary" class="history-card muted">Игра ещё не завершена.</div>
+        <div class="row">
+          <button onclick="exportChronicles()">Скачать хроники</button>
+          <button class="secondary" onclick="copyChronicles()">Скопировать</button>
+          <button class="secondary" onclick="showPage('home')">Главная</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Летопись событий</h2>
+        <div id="chroniclesLog" class="log"></div>
+      </section>
+    </section>
+  </main>
+
+
+  <!-- Firebase online sync. Вставь свой firebaseConfig ниже в коде. -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+
+  <script>
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAeY4qYLMehYPtVozJ8CWt6zXQDJs0iE90",
+      authDomain: "bunker-54d82.firebaseapp.com",
+      databaseURL: "https://bunker-54d82-default-rtdb.firebaseio.com",
+      projectId: "bunker-54d82",
+      storageBucket: "bunker-54d82.firebasestorage.app",
+      messagingSenderId: "763581197921",
+      appId: "1:763581197921:web:2abc20e29c43d0f3a04420",
+      measurementId: "G-JZVF2702W6"
+    };
+
+    const ONLINE_ROOT = 'bunker_v1';
+    let onlineMode = false;
+    let onlineDb = null;
+    let onlineReady = false;
+    let suppressOnlineWrite = false;
+    let subscribedRoomId = '';
+    let unsubscribeGame = null;
+    let unsubscribeVotes = null;
+
+    const packs =  {
+      apocalypse: {
+        name: 'Апокалипсис',
+        scenarios: [
+          'Ядерный обмен между сверхдержавами длился меньше суток, но этого хватило, чтобы уничтожить большую часть крупных городов. Поверхность покрыта радиоактивной пылью, связь нестабильна, на дорогах бродят голодные группы выживших. Ваш бункер — старый аварийный объект под промышленной зоной. Он способен защитить от радиации, но вентиляция изношена, генератор требует ухода, а запасов хватит только избранным. Через несколько лет уровень заражения может снизиться, и тогда оставшиеся смогут выйти наружу, чтобы основать новое поселение.',
+          'После глобального коллапса энергосетей, взрывов на химических объектах и массовых беспорядков цивилизация рухнула. Города стали ловушками: в них нет воды, лекарств и безопасных маршрутов. Вы добрались до подземного убежища с медблоком, складом, фильтрами и старой радиорубкой. Но бункер не рассчитан на всех. Каждое место должно достаться тому, кто поможет пережить годы изоляции и восстановить порядок после выхода.'
+        ],
+        conditions: ['вентиляция нестабильна', 'генератор работает с перебоями', 'медблок уцелел, но лекарств мало']
+      },
+      zombie: {
+        name: 'Зомби',
+        scenarios: [
+          'Неизвестный патоген за несколько недель превратил миллионы людей в агрессивных заражённых. Они реагируют на шум, тепло и запах крови. Город пал, военные кордоны разрушены, а эвакуация сорвалась. Ваш бункер находится под старым исследовательским центром. Внутри есть гермодвери, лаборатория и склад, но один неверный выход наружу может привести орду к вашему убежищу.',
+          'Вирус начал распространяться после аварии в закрытой лаборатории. Первые симптомы похожи на лихорадку, затем наступает потеря контроля и крайняя агрессия. Выжившие укрылись в бункере под больницей. Там есть медикаменты, операционная и холодильные камеры, но часть входов повреждена. Группа должна решить, кто сможет сохранить дисциплину, лечить раны и не подвергать остальных риску.'
+        ],
+        conditions: ['двери повреждены', 'патроны на исходе', 'лаборатория частично работает']
+      },
+      fantasy: {
+        name: 'Фэнтези',
+        scenarios: [
+          'Королевство накрыла магическая буря, вызванная пробуждением древнего разлома. Небо расколото, леса искажены, а существа из других миров выходят на поверхность. Под старой крепостью найден зал-убежище с рунами защиты, запасами трав и подземным источником. Но магическая защита слабеет каждый месяц, и только правильно выбранная группа сможет продержаться до рассвета новой эпохи.',
+          'Проклятие Чёрной Луны изменило землю: урожай погиб, дороги исчезли в тумане, а мёртвые стали слышать голоса живых. Вы укрылись в подземном святилище, построенном древними мастерами. Внутри есть алхимическая комната, хранилище и источник воды, но места мало. Выбирать нужно тех, кто сможет лечить, защищать, добывать знания и выдержать страх подземелья.'
+        ],
+        conditions: ['руны защиты слабеют', 'запасы трав ограничены', 'магический источник нестабилен']
+      },
+      maniac: {
+        name: 'Маньяк',
+        scenarios: [
+          'После серии исчезновений ваша группа нашла старый бункер за городом. Снаружи действует неизвестный преследователь: он отключает электричество, оставляет метки у входов и, кажется, знает внутренние планы убежища. Внутри есть камеры, склад и бронированная дверь, но часть систем сломана. Каждый выход наружу опасен, а доверять можно не всем.',
+          'Небольшой город оказался отрезан от мира. Телефоны не работают, дороги перекрыты, а по ночам кто-то проникает в дома выживших. Вы спрятались в бункере старой гражданской обороны. Убежище может выдержать долгую осаду, но запасы ограничены, а среди людей растёт подозрение. Нужно выбрать тех, кто не сломается психологически и поможет группе не уничтожить себя изнутри.'
+        ],
+        conditions: ['камеры наблюдения частично сломаны', 'заперты не все входы', 'связь снаружи пропала']
+      },
+      space: {
+        name: 'Космос',
+        scenarios: [
+          'Орбитальная станция получила критические повреждения после метеоритного шторма. Основной модуль разгерметизирован, связь с Землёй прерывается, а спасательный шаттл рассчитан не на всех. Вы укрылись в аварийном отсеке, где есть кислород, гидропоника и ремонтные панели. Чтобы дождаться спасения, нужно выбрать тех, кто сможет поддерживать системы и не сорваться в изоляции.',
+          'Колония на Марсе потеряла связь с Землёй после солнечной бури. Купол повреждён, часть запасов засыпана пылью, а энергетический блок работает на минимуме. Подземный модуль способен сохранить группу живой несколько лет, но кислород и еда строго ограничены. Ошибка в выборе людей может стоить жизни всей колонии.'
+        ],
+        conditions: ['кислород экономят', 'энергия на минимуме', 'гидропоника повреждена']
+      },
+      virus: {
+        name: 'Вирус',
+        scenarios: [
+          'Пандемия неизвестного вируса разрушила систему здравоохранения. Инкубационный период непредсказуем, а мутации делают старые лекарства почти бесполезными. Ваш бункер оборудован лабораторией, карантинной зоной и медицинским складом, но ресурсов мало. Главная цель — пережить пик заражения и сохранить людей, способных восстановить медицину и порядок.',
+          'Инфекция распространилась через воду и воздух в крупных городах. Выжившие закрылись в подземном комплексе, где есть анализаторы, фильтры и запас защитных костюмов. Но каждый новый контакт с поверхностью опасен. Группа должна решить, кто будет полезен в условиях карантина, дефицита лекарств и психологического давления.'
+        ],
+        conditions: ['карантинная зона мала', 'анализаторы работают частично', 'лекарств мало']
+      },
+      winter: {
+        name: 'Ледниковый период',
+        scenarios: [
+          'После серии климатических катастроф температура начала падать каждый месяц. Города замёрзли, дороги занесены снегом, а большая часть урожая погибла. Ваш бункер находится под складским комплексом и имеет отопительный контур, теплицу и топливный резерв. Но топлива мало, а любая поломка может превратить убежище в ледяную могилу.',
+          'Солнце почти исчезло за слоем пыли, поднятой вулканами и пожарами. Мир погрузился в долгую зиму. Вы нашли подземное убежище с генератором, скважиной и запасами семян. Чтобы пережить годы холода, нужны люди, способные сохранять тепло, выращивать пищу и ремонтировать системы без помощи цивилизации.'
+        ],
+        conditions: ['топливо ограничено', 'теплица замерзает', 'одежды не хватает']
+      },
+      cyber: {
+        name: 'Киберпанк',
+        scenarios: [
+          'Городской управляющий ИИ вышел из-под контроля и объявил людей угрозой стабильности. Дроны патрулируют улицы, цифровые замки блокируют районы, а корпорации бросили население. Вы укрылись в автономном подземном узле, отключённом от городской сети. Внутри есть серверная, генератор и запасы, но любая попытка связи может выдать ваше местоположение.',
+          'После корпоративной войны мегаполис разделён на закрытые зоны. Вода, еда и электричество контролируются частными армиями. Ваш бункер — старый технический центр под метро. Он может стать началом нового независимого поселения, если группа сумеет защитить его, взломать системы и сохранить человеческие отношения в мире тотального контроля.'
+        ],
+        conditions: ['сеть заражена вирусом', 'дроны ищут вход', 'электроника нестабильна']
+      },
+      island: {
+        name: 'Остров после катастрофы',
+        scenarios: [
+          'После мощного цунами остров оказался отрезан от материка. Порт уничтожен, связь пропала, а пресная вода быстро заканчивается. Группа нашла подземный склад времён старой военной базы. Внутри есть еда, инструменты и фильтры, но штормы повреждают укрытие, а спасение может прийти только через годы.',
+          'Катастрофический шторм уничтожил поселения на острове. Оставшиеся выжившие укрылись в бункере под маяком. Там есть радиостанция, запас топлива и склад консервов, но крыша протекает, а джунгли вокруг полны опасностей. Нужно выбрать тех, кто сможет чинить укрытие, добывать воду и поддерживать порядок.'
+        ],
+        conditions: ['еда портится быстро', 'вода требует фильтрации', 'крыша протекает']
+      },
+      underwater: {
+        name: 'Подводный бункер',
+        scenarios: [
+          'Подводная станция потеряла связь после аварии на поверхности. Давление растёт, часть отсеков затоплена, а кислород расходуется быстрее расчётов. Ваш отсек изолирован и может продержаться несколько лет, если поддерживать системы. Любая ошибка в ремонте или распределении ресурсов приведёт к гибели всей группы.',
+          'После глобального потопа подводный исследовательский комплекс стал единственным убежищем для вашей группы. Внутри есть лаборатория, шлюз, генератор и система очистки воды, но корпус даёт микротрещины. Чтобы однажды подняться на поверхность, нужно сохранить специалистов, способных выжить в замкнутом мире под давлением океана.'
+        ],
+        conditions: ['корпус даёт микротрещины', 'кислород ограничен', 'шлюз заклинивает']
+      }
+    };
+
+    const roundEventStories = [
+      {
+        title: 'Скрытый ящик за ржавой гермодверью',
+        story: 'В дальнем коридоре бункера обнаружилась старая гермодверь с надписью «НЕ ОТКРЫВАТЬ». Конечно, именно поэтому её и хочется открыть. За дверью слышен скрежет, пахнет пылью, озоном и чьими-то очень плохими решениями.'
+      },
+      {
+        title: 'Склад, которого не было на плане',
+        story: 'За фальшивой стеной найден узкий проход к неизвестному складу. На полу следы, будто кто-то уже ходил туда раньше. Или выползал. Хорошая новость: внутри может быть полезный предмет. Плохая новость: бункер явно не любит халявщиков.'
+      },
+      {
+        title: 'Ящик у аварийного шлюза',
+        story: 'Возле аварийного шлюза мигает красная лампа, а рядом стоит металлический ящик. На крышке написано: «Открывать только при полном отсутствии здравого смысла». В группе сразу нашёлся кандидат.'
+      },
+      {
+        title: 'Подарок из мёртвой зоны',
+        story: 'В мёртвой зоне бункера засёкся слабый сигнал. Там лежит запертый контейнер, будто специально оставленный для героя, который слишком долго прожил без проблем. Внутри может быть спасение. Или причина обновить список погибших.'
+      },
+      {
+        title: 'Тайник старого смотрителя',
+        story: 'В вентиляционной шахте найден тайник бывшего смотрителя. Судя по записке, он был параноиком, но параноики иногда живут дольше оптимистов. Осталось понять, был ли он достаточно добр, чтобы не заминировать собственный подарок.'
+      }
+    ];
+
+    const eventHumor = {
+      success: [
+        'Вернулся как герой дешёвого боевика: грязный, довольный и с добычей.',
+        'Повезло так, будто бункер на секунду забыл, что он против всех.',
+        'Операция прошла успешно. Даже крысы в коридоре выглядели разочарованными.',
+        'Игрок нашёл предмет и сохранил лицо. Редкое комбо для этого бункера.'
+      ],
+      hurt: [
+        'Предмет забрал, здоровье оставил где-то в коридоре. Обмен спорный, но инвентарь доволен.',
+        'Вернулся живым, но организм подал заявление на увольнение.',
+        'Добыча есть. Самочувствие такое, будто его пережевал лифт и выплюнул из уважения.',
+        'Хорошая новость: предмет найден. Плохая: врач в бункере теперь смотрит на него как на сверхурочную работу.'
+      ],
+      death: [
+        'Он ушёл за лутом, а стал частью лора. Бункер молча поставил галочку.',
+        'Предмет не найден. Игрок тоже, в общем-то, больше не особенно найден.',
+        'Вылазка закончилась настолько плохо, что даже журнал событий попросил минуту молчания.',
+        'Он доказал, что смелость — полезное качество. Но не всегда многоразовое.'
+      ]
+    };
+
+    const diseaseProgression = {
+      'Простуда': { next: 'Тахикардия', stage: 'medium' },
+      'Грипп': { next: 'Астма', stage: 'medium' },
+      'Аллергия': { next: 'Иммунодефицит', stage: 'medium' },
+      'Храп': { next: 'Хроническая бессонница', stage: 'medium' },
+      'Легкая бессонница': { next: 'Панические атаки', stage: 'medium' },
+      'Заикание': { next: 'Социопатия', stage: 'medium' },
+      'Морская болезнь': { next: 'Хроническая усталость', stage: 'medium' },
+      'Укачивание': { next: 'Панические атаки', stage: 'medium' },
+      'Нервный тик': { next: 'Тремор', stage: 'medium' },
+      'Повышенная потливость': { next: 'Гипертония', stage: 'medium' },
+      'Гастрит': { next: 'Язва', stage: 'medium' },
+      'Сколиоз': { next: 'Артрит', stage: 'medium' },
+      'Плоскостопие': { next: 'Радикулит', stage: 'medium' },
+      'Близорукость': { next: 'Проблемы со зрением', stage: 'medium' },
+      'Дальтонизм': { next: 'Светобоязнь', stage: 'medium' },
+      'Лунатизм': { next: 'Амнезия', stage: 'medium' },
+      'ОКР': { next: 'Психоз', stage: 'medium' },
+      'Запор': { next: 'Геморрой', stage: 'medium' },
+      'Аллергия на лекарства': { next: 'Иммунодефицит', stage: 'medium' },
+      'Хронический кашель': { next: 'Туберкулез', stage: 'medium' },
+      'Тремор рук': { next: 'Болезнь Паркинсона', stage: 'medium' },
+      'Непереносимость жары': { next: 'Гипертония', stage: 'medium' },
+      'Легкая депрессия': { next: 'Биполярное расстройство', stage: 'medium' },
+      'Цистит': { next: 'Болезнь почек', stage: 'medium' },
+
+      'Панические атаки': {
+        byStage: {
+          light: { next: 'Паранойя', stage: 'medium' },
+          medium: { next: 'Паника в замкнутом пространстве', stage: 'heavy' }
+        }
+      },
+      'Хроническая усталость': {
+        byStage: {
+          light: { next: 'Депрессия', stage: 'medium' },
+          medium: { next: 'Организм медленно отказывает', stage: 'heavy' }
+        }
+      },
+      'Анемия': {
+        byStage: {
+          light: { next: 'Болезнь почек', stage: 'medium' },
+          medium: { next: 'Организм медленно отказывает', stage: 'heavy' }
+        }
+      },
+      'Диарея': { next: 'Синдром раздраженного кишечника', stage: 'medium' },
+      'Непереносимость холода': { next: 'Анемия', stage: 'medium' },
+      'Радикулит': {
+        byStage: {
+          light: { next: 'Паралич', stage: 'medium' },
+          medium: { next: 'Паралич', stage: 'heavy' }
+        }
+      },
+
+      'Астма': { next: 'Отказ легких', stage: 'heavy' },
+      'Диабет': { next: 'Организм медленно отказывает', stage: 'heavy' },
+      'Эпилепсия': { next: 'Постоянные судороги', stage: 'heavy' },
+      'Гипертония': { next: 'Сердечная недостаточность', stage: 'heavy' },
+      'Язва': { next: 'Внутренние кровотечения', stage: 'heavy' },
+      'Ожирение': { next: 'Сердечная недостаточность', stage: 'heavy' },
+      'Артрит': { next: 'Паралич', stage: 'heavy' },
+      'Тахикардия': { next: 'Сердечная недостаточность', stage: 'heavy' },
+      'Болезнь почек': { next: 'Организм на грани смерти', stage: 'heavy' },
+      'Тремор': { next: 'Болезнь Паркинсона', stage: 'heavy' },
+      'Плохая свертываемость крови': { next: 'Хроническое заражение крови', stage: 'heavy' },
+      'Частичная глухота': { next: 'Паранойя', stage: 'heavy' },
+      'Проблемы со зрением': { next: 'Светобоязнь', stage: 'heavy' },
+      'Депрессия': { next: 'Суицидальные наклонности', stage: 'heavy' },
+      'Хроническая бессонница': { next: 'Галлюцинации', stage: 'heavy' },
+      'Недержание': { next: 'Потеря личности', stage: 'heavy' },
+      'Геморрой': { next: 'Внутренние кровотечения', stage: 'heavy' },
+      'Камни в почках': { next: 'Организм медленно отказывает', stage: 'heavy' },
+      'Синдром раздраженного кишечника': { next: 'Критическое обезвоживание', stage: 'heavy' },
+      'Амнезия': { next: 'Альцгеймер', stage: 'heavy' },
+      'Паранойя': { next: 'Параноидальный бред', stage: 'heavy' },
+      'Социопатия': { next: 'Психопатия', stage: 'heavy' },
+      'Биполярное расстройство': { next: 'Неконтролируемая агрессия', stage: 'heavy' },
+      'Галлюцинации': { next: 'Шизофрения', stage: 'heavy' },
+      'Психоз': { next: 'Раздвоение личности', stage: 'heavy' },
+      'Игромания': { next: 'Синдром самоуничтожения', stage: 'heavy' },
+      'Алкоголизм': { next: 'Цирроз печени', stage: 'heavy' },
+      'Никотиновая зависимость': { next: 'Отказ легких', stage: 'heavy' },
+      'Клептомания': { next: 'Психопатия', stage: 'heavy' },
+      'Пиромания': { next: 'Одержимость убийством', stage: 'heavy' },
+      'Светобоязнь': { next: 'Паника в замкнутом пространстве', stage: 'heavy' },
+      'Судороги': { next: 'Постоянные судороги', stage: 'heavy' },
+      'Радиационное заражение': { next: 'Мутация после радиации', stage: 'heavy' },
+      'Иммунодефицит': { next: 'Неизвестный вирус', stage: 'heavy' },
+      'Рассеянный склероз': { next: 'Паралич', stage: 'heavy' },
+      'Болезнь Паркинсона': { next: 'Потеря контроля над эмоциями', stage: 'heavy' },
+      'Лейкемия': { next: 'Организм на грани смерти', stage: 'heavy' },
+      'Туберкулез': { next: 'Отказ легких', stage: 'heavy' }
+    };
+
+    const diseaseDeaths = {
+      'Сердечная недостаточность': 'Задохнулся во время приступа',
+      'Отказ легких': 'Не смог дышать',
+      'Неизвестный вирус': 'Организм не выдержал инфекцию',
+      'Галлюцинации': 'Умер в бреду',
+      'Паника в замкнутом пространстве': 'Сошел с ума от паники',
+      'Психопатия': 'Был устранен выжившими',
+      'Организм медленно отказывает': 'Организм окончательно отказал',
+      'Параноидальный бред': 'Потерял контроль над собой',
+      'Болезнь Паркинсона': 'Полный отказ нервной системы',
+      'Внутренние кровотечения': 'Истек кровью',
+      'Паралич': 'Не пережил осложнения',
+      'Светобоязнь': 'Потерял рассудок в темноте',
+      'Альцгеймер': 'Полный отказ организма',
+      'Шизофрения': 'Потерял связь с реальностью',
+      'Суицидальные наклонности': 'Совершил самоубийство',
+      'Организм на грани смерти': 'Организм окончательно отказал',
+      'Критическое обезвоживание': 'Утонул в собственных отходах',
+      'Потеря контроля над эмоциями': 'Организм не выдержал приступа',
+      'Синдром самоуничтожения': 'Сам довел себя до смерти',
+      'Кататония': 'Организм умер от истощения',
+      'Постоянные судороги': 'Смертельный приступ',
+      'Хроническое заражение крови': 'Сепсис',
+      'Неконтролируемая агрессия': 'Погиб во время приступа',
+      'Раздвоение личности': 'Потерял контроль над собой',
+      'Цирроз печени': 'Отказ печени',
+      'Одержимость убийством': 'Сгорел в собственном пожаре',
+      'Мутация после радиации': 'Мутация уничтожила организм',
+      'Потеря личности': 'Полностью утратил человеческое сознание'
+    };
+
+    const cards = {
+      profession: ['Врач-хирург', 'Стоматолог', 'Инженер', 'Агроном', 'Повар', 'Программист', 'Психолог', 'Военный медик', 'Учитель', 'Электрик', 'Биолог', 'Строитель', 'Механик', 'Фармацевт', 'Охотник', 'Ветеринар', 'Химик', 'Спасатель', 'Сварщик', 'Радиоинженер'],
+      healthCategories: {
+        perfect: [
+          'Идеально здоров','Абсолютно здоров','Организм без отклонений','Отличный иммунитет','Повышенная выносливость','Быстрое восстановление','Никогда не болел','Иммунитет к большинству инфекций','Крепкая психика','Высокий болевой порог','Стабильная нервная система','Отличное зрение и слух','Спокойствие в стрессовых ситуациях','Генетически крепкий организм','Повышенная сопротивляемость радиации','Спит 4 часа и полностью восстанавливается','Очень быстрый метаболизм','Отсутствие хронических заболеваний','Физически подготовлен','Организм как у спортсмена'
+        ],
+        light: [
+          'Простуда','Грипп','Аллергия','Храп','Легкая бессонница','Заикание','Морская болезнь','Укачивание','Нервный тик','Повышенная потливость','Гастрит','Сколиоз','Плоскостопие','Близорукость','Дальтонизм','Панические атаки','Лунатизм','ОКР','Хроническая усталость','Анемия','Диарея','Запор','Аллергия на лекарства','Хронический кашель','Тремор рук','Непереносимость жары','Непереносимость холода','Легкая депрессия','Цистит','Радикулит'
+        ],
+        medium: [
+          'Астма','Диабет','Эпилепсия','Гипертония','Язва','Ожирение','Артрит','Тахикардия','Болезнь почек','Тремор','Плохая свертываемость крови','Частичная глухота','Проблемы со зрением','Депрессия','Хроническая бессонница','Недержание','Геморрой','Камни в почках','Синдром раздраженного кишечника','Амнезия','Паранойя','Социопатия','Биполярное расстройство','Галлюцинации','Психоз','Игромания','Алкоголизм','Никотиновая зависимость','Клептомания','Пиромания','Светобоязнь','Судороги','Радиационное заражение','Иммунодефицит','Рассеянный склероз','Болезнь Паркинсона','Лейкемия','Туберкулез','Панические атаки','Хроническая усталость','Анемия','Радикулит'
+        ],
+        heavy: [
+          'Сердечная недостаточность','Отказ легких','Неизвестный вирус','Галлюцинации','Паника в замкнутом пространстве','Психопатия','Организм медленно отказывает','Параноидальный бред','Болезнь Паркинсона','Внутренние кровотечения','Паралич','Светобоязнь','Альцгеймер','Шизофрения','Суицидальные наклонности','Организм на грани смерти','Критическое обезвоживание','Потеря контроля над эмоциями','Синдром самоуничтожения','Кататония','Постоянные судороги','Хроническое заражение крови','Неконтролируемая агрессия','Раздвоение личности','Цирроз печени','Одержимость убийством','Мутация после радиации','Потеря личности','Паранойя'
+        ]
+      },
+      hobby: ['Выживание в лесу', 'Кулинария', 'Ремонт техники', 'Шахматы', 'Бег', 'Рыбалка', 'Садоводство', 'Радиосвязь', 'Стрельба из лука', 'Первая помощь'],
+      biology: ['Мужчина, 24 года', 'Женщина, 31 год', 'Мужчина, 45 лет', 'Женщина, 19 лет', 'Мужчина, 52 года', 'Женщина, 38 лет', 'Мужчина, 29 лет', 'Женщина, 27 лет'],
+      skill: ['Лидерство', 'Быстрое обучение', 'Ремонт генераторов', 'Оказание первой помощи', 'Навигация', 'Переговоры', 'Физическая сила', 'Тихое передвижение', 'Аналитика', 'Обучение других'],
+      backpack: ['Аптечка', 'Мультитул', 'Фильтр воды', 'Рация', 'Фонарик', 'Семена овощей', 'Карта местности', 'Тёплая одежда', 'Набор антибиотиков', 'Ручной генератор'],
+      inventory: ['Консервы', 'Верёвка', 'Солнечная панель', 'Книга по медицине', 'Спички', 'Батарейки', 'Набор шприцов', 'Складной нож', 'Ткань и бинты', 'Набор проводов', 'Газовая горелка', 'Портативный аккумулятор', 'Сухпай', 'Защитная маска', 'Медицинский жгут', 'Компас'],
+      character: ['Спокойный лидер', 'Конфликтный спорщик', 'Молчаливый наблюдатель', 'Эмпатичный миротворец', 'Жёсткий прагматик', 'Весёлый мотиватор', 'Подозрительный одиночка', 'Дисциплинированный исполнитель'],
+      phobia: ['Клаустрофобия', 'Боязнь темноты', 'Боязнь крови', 'Боязнь одиночества', 'Боязнь громких звуков', 'Боязнь высоты', 'Нет явной фобии', 'Боязнь заражения'],
+      bodyType: () => {
+        const types = [
+          'Худощавое',
+          'Спортивное',
+          'Крепкое',
+          'Полное',
+          'Мускулистое',
+          'Слабое',
+          'Подтянутое',
+          'Атлетическое',
+          'Высокое и худое',
+          'Коренастое',
+          'Обычное',
+          'Сильное'
+        ];
+
+        return `${randomFrom(types)}, ${randomHeight()} см`;
+      },
+      fact: ['Однажды спас группу людей', 'Скрывает важную тайну', 'Может обучать других', 'Был волонтёром в зоне ЧС', 'Хорошо ладит с детьми', 'Боится принимать решения', 'Имеет лидерские качества', 'Плохо переносит конфликты'],
+      special: ['Иммунитет от одного исключения', 'Двойной голос', 'Открыть чужую карту', 'Поменяться рюкзаком', 'Заблокировать один голос', 'Вернуть исключённого на обсуждение', 'Скрыть одну открытую карту', 'Получить дополнительный аргумент от ведущего']
+    };
+
+    let nickname = localStorage.getItem('bz_nickname') || '';
+    let rooms = JSON.parse(localStorage.getItem('bz_rooms') || '[]');
+    let currentRoomId = localStorage.getItem('bz_current_room') || '';
+    let game = JSON.parse(localStorage.getItem('bz_game') || 'null');
+    let votes = {};
+    let filter = 'all';
+    let timerInterval = null;
+    let timerTotal = 120;
+    let timerLeft = 120;
+
+    let currentPage = localStorage.getItem('bz_current_page') || 'register';
+
+    function saveCurrentPage(page) {
+      currentPage = page;
+      localStorage.setItem('bz_current_page', page);
+    }
+
+    function firebaseConfigReady() {
+      return FIREBASE_CONFIG
+        && FIREBASE_CONFIG.apiKey
+        && !String(FIREBASE_CONFIG.apiKey).includes('PASTE_')
+        && FIREBASE_CONFIG.databaseURL
+        && !String(FIREBASE_CONFIG.databaseURL).includes('PASTE_');
+    }
+
+    function roomsToObject(list) {
+      const obj = {};
+      (list || []).forEach(r => {
+        if (r && r.id) obj[r.id] = r;
+      });
+      return obj;
+    }
+
+    function objectToRooms(obj) {
+      if (!obj) return [];
+      return Object.values(obj).sort((a, b) => {
+        const ac = a.createdMs || 0;
+        const bc = b.createdMs || 0;
+        return bc - ac;
+      });
+    }
+
+    function initOnline() {
+      if (!firebaseConfigReady()) {
+        console.warn('Firebase config не заполнен. Игра работает локально.');
+        return;
+      }
+
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        onlineDb = firebase.database();
+        onlineMode = true;
+
+        onlineDb.ref(`${ONLINE_ROOT}/rooms`).on('value', snapshot => {
+          suppressOnlineWrite = true;
+          rooms = objectToRooms(snapshot.val());
+          localStorage.setItem('bz_rooms', JSON.stringify(rooms));
+          renderAll();
+          suppressOnlineWrite = false;
+        });
+
+        onlineReady = true;
+        showToast('Онлайн-синхронизация включена', 2500);
+        subscribeCurrentRoom();
+      } catch (error) {
+        console.error('Firebase init error:', error);
+        showToast('Firebase не подключился. Проверь firebaseConfig.', 5000);
+      }
+    }
+
+    function subscribeCurrentRoom() {
+      if (!onlineMode || !onlineDb || !currentRoomId || subscribedRoomId === currentRoomId) return;
+
+      if (unsubscribeGame) unsubscribeGame();
+      if (unsubscribeVotes) unsubscribeVotes();
+
+      subscribedRoomId = currentRoomId;
+
+      const gameRef = onlineDb.ref(`${ONLINE_ROOT}/games/${currentRoomId}`);
+      const votesRef = onlineDb.ref(`${ONLINE_ROOT}/votes/${currentRoomId}`);
+
+      const gameHandler = snapshot => {
+        const remoteGame = snapshot.val();
+        if (!remoteGame) return;
+
+        suppressOnlineWrite = true;
+        game = remoteGame;
+        localStorage.setItem('bz_game', JSON.stringify(game));
+        const currentVisiblePage = localStorage.getItem('bz_current_page');
+        renderAll();
+        suppressOnlineWrite = false;
+
+        const r = room();
+        const isParticipant = game.players && game.players.some(p => p.name === nickname);
+        if (currentVisiblePage === 'lobby' && r && r.status === 'Игра идёт' && isParticipant) {
+          showPage('game');
+        }
+      };
+
+      const votesHandler = snapshot => {
+        suppressOnlineWrite = true;
+        votes = snapshot.val() || {};
+        renderAll();
+        suppressOnlineWrite = false;
+      };
+
+      gameRef.on('value', gameHandler);
+      votesRef.on('value', votesHandler);
+
+      unsubscribeGame = () => gameRef.off('value', gameHandler);
+      unsubscribeVotes = () => votesRef.off('value', votesHandler);
+    }
+
+    function saveOnlineState() {
+      if (!onlineMode || !onlineDb || suppressOnlineWrite) return;
+
+      onlineDb.ref(`${ONLINE_ROOT}/rooms`).set(roomsToObject(rooms));
+
+      if (currentRoomId && game && game.roomId === currentRoomId) {
+        onlineDb.ref(`${ONLINE_ROOT}/games/${currentRoomId}`).set(game);
+      }
+
+      if (currentRoomId) {
+        onlineDb.ref(`${ONLINE_ROOT}/votes/${currentRoomId}`).set(votes || {});
+      }
+    }
+
+
+
+    function saveState() {
+      localStorage.setItem('bz_nickname', nickname);
+      localStorage.setItem('bz_rooms', JSON.stringify(rooms));
+      localStorage.setItem('bz_current_room', currentRoomId || '');
+      localStorage.setItem('bz_game', JSON.stringify(game));
+      saveOnlineState();
+    }
+
+    function showPage(name) {
+      saveCurrentPage(name);
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      document.getElementById('headerSubtitle').textContent = nickname ? `Игрок: ${nickname}` : 'Введите никнейм, создайте лобби и запустите партию.';
+      subscribeCurrentRoom();
+      renderAll();
+    }
+
+    function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function randomHeight() {
+      return Math.floor(Math.random() * (220 - 120 + 1)) + 120;
+    }
+
+    function healthIcon(stage) {
+      if (stage === 'perfect') return '🟢';
+      if (stage === 'light') return '🟡';
+      if (stage === 'medium') return '🟠';
+      if (stage === 'heavy') return '🔴';
+      return '';
+    }
+
+    function healthView(player) {
+      return `${healthIcon(player.cards.healthStage)} ${player.cards.health}`;
+    }
+
+    function getDiseaseProgression(health, stage) {
+      const rule = diseaseProgression[health];
+      if (!rule) return null;
+      if (rule.byStage) return rule.byStage[stage] || null;
+      return rule;
+    }
+    function code() { return Math.random().toString(36).slice(2, 6).toUpperCase(); }
+    function room() { return rooms.find(r => r.id === currentRoomId); }
+    function alivePlayers() { return game ? game.players.filter(p => p.alive && !p.exiled) : []; }
+    function byId(id) { return game?.players.find(p => p.id === Number(id)); }
+    function log(text) {
+      if (!game) return;
+      const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      game.history.unshift(`[${time}] ${text}`);
+      saveState();
+      renderAll();
+    }
+
+    function plainText(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html || '';
+      return div.textContent || div.innerText || '';
+    }
+
+    function showToast(message, delay = 3500, persistent = false) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.style.display = 'block';
+      clearTimeout(window.__toastTimer);
+      if (!persistent) {
+        window.__toastTimer = setTimeout(() => {
+          toast.style.display = 'none';
+        }, delay);
+      }
+    }
+
+    function hideToast() {
+      const toast = document.getElementById('toast');
+      clearTimeout(window.__toastTimer);
+      if (toast) toast.style.display = 'none';
+    }
+
+    function showEventModal(html) {
+      const backdrop = document.getElementById('eventModalBackdrop');
+      const content = document.getElementById('eventModalContent');
+      if (!backdrop || !content) return;
+      content.innerHTML = html;
+      backdrop.style.display = 'flex';
+    }
+
+    function hideEventModal() {
+      const backdrop = document.getElementById('eventModalBackdrop');
+      if (backdrop) backdrop.style.display = 'none';
+    }
+
+    function saveNickname() {
+      const value = document.getElementById('nicknameInput').value.trim();
+      if (!value) return alert('Введи никнейм.');
+      nickname = value;
+      saveState();
+      showPage('home');
+    }
+
+    function changeNickname() {
+      const input = document.getElementById('changeNicknameInput');
+      const value = input.value.trim();
+      if (!value) return alert('Введи новый никнейм.');
+      const oldName = nickname;
+      nickname = value;
+
+      rooms.forEach(r => {
+        if (r.host === oldName) r.host = value;
+        r.players.forEach(p => { if (p.name === oldName) p.name = value; });
+      });
+
+      if (game) game.players.forEach(p => { if (p.name === oldName) p.name = value; });
+
+      input.value = '';
+      saveState();
+      renderAll();
+    }
+
+    function openCreateLobby() {
+      if (!nickname) return showPage('register');
+      document.getElementById('lobbyName').value = `${nickname}: комната`;
+      showPage('create');
+    }
+
+    function createLobbyFromForm() {
+      if (!nickname) return showPage('register');
+      const maxPlayers = Number(document.getElementById('maxPlayersSelect').value);
+      const packKey = document.getElementById('packSelect').value;
+      const seatValue = document.getElementById('seatSelect').value;
+      const seats = seatValue === 'auto' ? Math.max(1, Math.ceil(maxPlayers * 0.6)) : Number(seatValue);
+      const newRoom = {
+        id: code(),
+        name: document.getElementById('lobbyName').value.trim() || 'Безымянное лобби',
+        host: nickname,
+        packKey,
+        packName: packs[packKey].name,
+        maxPlayers,
+        seats: Math.min(seats, maxPlayers - 1),
+        timer: 120,
+        years: Number(document.getElementById('yearsSelect').value),
+        status: 'Ожидание',
+        players: [{ id: Date.now(), name: nickname, host: true, ready: true }],
+        created: new Date().toLocaleString('ru-RU'),
+        createdMs: Date.now()
+      };
+      rooms = rooms.filter(r => r.status !== 'Завершена');
+      rooms.unshift(newRoom);
+      currentRoomId = newRoom.id;
+      game = null;
+      saveState();
+      showPage('lobby');
+    }
+
+    function joinLobby(id) {
+      if (!nickname) return showPage('register');
+      const r = rooms.find(x => x.id === id);
+      if (!r) return alert('Комната не найдена.');
+
+      currentRoomId = r.id;
+      localStorage.setItem('bz_current_room', currentRoomId);
+      subscribeCurrentRoom();
+
+      const alreadyInRoom = r.players.some(p => p.name === nickname);
+
+      if (r.status === 'Игра идёт') {
+        if (!alreadyInRoom) {
+          alert('Матч уже идёт. Новые игроки не добавляются, но можно переподключиться под ником игрока из этой комнаты.');
+          return showPage('find');
+        }
+
+        if (game && game.roomId === r.id) return showPage('game');
+
+        if (onlineMode && onlineDb) {
+          onlineDb.ref(`${ONLINE_ROOT}/games/${r.id}`).once('value').then(snapshot => {
+            const remoteGame = snapshot.val();
+            if (remoteGame) {
+              game = remoteGame;
+              localStorage.setItem('bz_game', JSON.stringify(game));
+              showPage('game');
+            } else {
+              showPage('lobby');
+            }
+          });
+          return;
+        }
+
+        return game ? showPage('game') : showPage('lobby');
+      }
+
+      if (r.players.length >= r.maxPlayers && !alreadyInRoom) return alert('Комната заполнена.');
+      if (!alreadyInRoom) r.players.push({ id: Date.now(), name: nickname, host: false, ready: true });
+
+      saveState();
+      showPage('lobby');
+    }
+
+    function addBotPlayer() {
+      const r = room();
+      if (!r) return alert('Сначала создай комнату.');
+      if (r.players.length >= r.maxPlayers) return alert('Комната уже заполнена.');
+      const botNames = ['Адам', 'Ева', 'Сталкер', 'Док', 'Механик', 'Фермер', 'Химик', 'Повар', 'Охотник', 'Психолог'];
+      let name = randomFrom(botNames);
+      while (r.players.some(p => p.name === name)) name = randomFrom(botNames) + Math.floor(Math.random() * 99);
+      r.players.push({ id: Date.now() + Math.random(), name, host: false, ready: true, bot: true });
+      saveState();
+      renderAll();
+    }
+
+    function closeCurrentLobby() {
+      if (!currentRoomId) return;
+      const r = room();
+      if (r && r.host === nickname) {
+        r.status = 'Завершена';
+        if (game && game.roomId === r.id) {
+          game.votingOpen = false;
+          game.activeEvent = null;
+          game.finalSummary = 'Лобби завершено, потому что ведущий вышел из комнаты.';
+          if (game.history) game.history.unshift(`[${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}] Лобби завершено: ведущий вышел из комнаты.`);
+        }
+      } else if (r) {
+        r.players = r.players.filter(p => p.name !== nickname);
+      }
+      currentRoomId = '';
+      saveState();
+      showPage('home');
+    }
+
+    function isCurrentHost() {
+      const r = room();
+      return !!r && r.host === nickname;
+    }
+
+    function isCurrentGameHost() {
+      if (!game) return false;
+      const me = game.players.find(p => p.name === nickname);
+      return !!me && me.host;
+    }
+
+    function goToCurrentRoom() {
+      if (!currentRoomId) return showPage('find');
+      const r = room();
+      if (!r) return showPage('find');
+      subscribeCurrentRoom();
+      if (r.status === 'Игра идёт' && game) showPage('game');
+      else showPage('lobby');
+    }
+
+    function startGameFromLobby() {
+      const r = room();
+      if (!r) return alert('Комната не найдена.');
+      if (!isCurrentHost()) return alert('Запустить лобби может только ведущий.');
+      if (r.players.length < 3) return alert('Нужно хотя бы 3 игрока. Для теста добавь ботов.');
+      const pack = packs[r.packKey];
+      r.status = 'Игра идёт';
+      timerTotal = 120;
+      timerLeft = 120;
+      game = {
+        roomId: r.id,
+        round: 1,
+        seats: r.seats,
+        years: r.years,
+        food: `${Math.max(6, r.years * 8)} месяцев`,
+        water: `${Math.max(8, r.years * 10)} месяцев`,
+        condition: randomFrom(pack.conditions),
+        scenario: randomFrom(pack.scenarios),
+        bunker: makeBunkerText(r),
+        history: [],
+        finalSummary: '',
+        votingOpen: false,
+        roundOpeningActive: false,
+        currentTurnPlayerId: null,
+        turnTimeLeft: 0,
+        turnCooldownLeft: 0,
+        eventCheckedThisRound: false,
+        activeEvent: null,
+        players: r.players.map((p, index) => ({
+          id: index + 1,
+          name: p.name,
+          host: p.host,
+          alive: true,
+          exiled: false,
+          status: 'в игре',
+          winner: false,
+          cards: makePlayerCards(),
+          revealed: {
+            profession:false, health:false, bodyType:false, hobby:false, biology:false, skill:false, backpack:false, inventory:false, character:false, phobia:false, fact:false, fact2:false, special1:false, special2:false
+          }
+        }))
+      };
+      game.history.unshift(`[${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}] Игра запущена. Пак: ${r.packName}. Игроков: ${r.players.length}. Мест: ${r.seats}.`);
+      saveState();
+      showPage('game');
+    }
+
+    function makeBunkerText(r) {
+      const size = 50 + r.maxPlayers * 12;
+      const systems = ['медблок', 'мастерская', 'склад еды', 'фильтрация воды', 'генератор', 'спальный отсек', 'радиорубка', 'теплица'];
+      return `Площадь: ${size} м². Есть: ${randomFrom(systems)}, ${randomFrom(systems)}, ${randomFrom(systems)}. Мест доступно: ${r.seats}. Нужно выживать: ${r.years} ${r.years === 1 ? 'год' : r.years < 5 ? 'года' : 'лет'}.`;
+    }
+
+    function makePlayerCards() {
+      return {
+        profession: randomFrom(cards.profession),
+        ...(function(){
+          const category = randomFrom(['perfect','light','medium','heavy']);
+          return {
+            health: randomFrom(cards.healthCategories[category]),
+            healthStage: category
+          };
+        })(),
+        hobby: randomFrom(cards.hobby),
+        biology: randomFrom(cards.biology),
+        bodyType: cards.bodyType(),
+        skill: randomFrom(cards.skill),
+        backpack: randomFrom(cards.backpack),
+        inventory: randomFrom(cards.inventory),
+        character: randomFrom(cards.character),
+        phobia: randomFrom(cards.phobia),
+        fact: randomFrom(cards.fact),
+        fact2: randomFrom(cards.fact),
+        special1: randomFrom(cards.special),
+        special2: randomFrom(cards.special)
+      };
+    }
+
+    function maybeTriggerRoundEvent() {
+      if (!game) return;
+      game.activeEvent = null;
+      if (Math.random() > 0.25) return;
+      game.activeEvent = {
+        type: 'hidden_box',
+        joinedBy: null,
+        resolved: false,
+        result: '',
+        title: randomFrom(roundEventStories).title,
+        story: randomFrom(roundEventStories).story
+      };
+      showToast('Началось событие раунда: опасная вылазка. Первый нажавший участвует.', 0, true);
+      log('Появилось событие раунда: опасная вылазка за скрытым ящиком. Первый нажавший участвует.');
+    }
+
+    function joinRoundEvent() {
+      if (!game || !game.activeEvent || game.activeEvent.resolved) return;
+      if (game.activeEvent.joinedBy) return alert('В событии уже участвует другой игрок.');
+      const player = game.players.find(p => p.name === nickname && p.alive && !p.exiled);
+      if (!player) return alert('Только живой игрок может участвовать.');
+
+      game.activeEvent.joinedBy = player.name;
+      const roll = Math.random() * 100;
+
+      const newItem = randomFrom(cards.inventory);
+
+      if (roll <= 30) {
+        const joke = randomFrom(eventHumor.success);
+        player.cards.inventory += `, ${newItem}`;
+        game.activeEvent.result = `<strong>${player.name}</strong> вскрыл тайник и забрал предмет: <strong>${newItem}</strong>.<br><br>${joke}`;
+        log(plainText(game.activeEvent.result));
+      } else if (roll <= 90) {
+        const joke = randomFrom(eventHumor.hurt);
+        player.cards.inventory += `, ${newItem}`;
+        const currentHealth = player.cards.health;
+        const currentStage = player.cards.healthStage || 'medium';
+        const progression = getDiseaseProgression(currentHealth, currentStage);
+        const isHeavyDisease = currentStage === 'heavy';
+
+        if (isHeavyDisease) {
+          const deathReason = diseaseDeaths[currentHealth] || 'Организм не выдержал критического состояния';
+          player.alive = false;
+          player.exiled = true;
+          player.status = 'погиб';
+          game.activeEvent.result = `<strong>${player.name}</strong> погиб.<br><br>Причина смерти: ☠️ ${deathReason}.`;
+          log(plainText(game.activeEvent.result));
+          game.activeEvent.resolved = true;
+          saveState();
+          renderAll();
+          showEventModal(game.activeEvent.result);
+          return;
+        }
+
+        if (progression) {
+          player.cards.health = progression.next;
+          player.cards.healthStage = progression.stage;
+        } else {
+          const safeFallbackByStage = {
+            perfect: { next: 'Простуда', stage: 'light' },
+            light: { next: 'Тахикардия', stage: 'medium' },
+            medium: { next: 'Организм медленно отказывает', stage: 'heavy' }
+          };
+          const fallback = safeFallbackByStage[currentStage] || safeFallbackByStage.medium;
+          player.cards.health = fallback.next;
+          player.cards.healthStage = fallback.stage;
+        }
+        player.revealed.health = true;
+        game.activeEvent.result = `<strong>${player.name}</strong> забрал предмет: <strong>${newItem}</strong>, но здоровье ухудшилось.<br><br>${joke}`;
+        log(plainText(game.activeEvent.result));
+      } else {
+        const joke = randomFrom(eventHumor.death);
+        player.alive = false;
+        player.exiled = true;
+        player.status = 'погиб';
+        game.activeEvent.result = `<strong>${player.name}</strong> погиб во время вылазки.<br><br>${joke}`;
+        log(plainText(game.activeEvent.result));
+      }
+
+      game.activeEvent.resolved = true;
+      saveState();
+      renderAll();
+      showEventModal(game.activeEvent.result);
+
+      setTimeout(() => {
+        hideEventModal();
+        if (game && game.activeEvent && game.activeEvent.resolved && game.activeEvent.joinedBy === player.name) {
+          game.activeEvent = null;
+          saveState();
+          renderAll();
+        }
+      }, 5000);
+    }
+
+    let roundOpeningInterval = null;
+
+    function clearRoundOpeningTimer() {
+      if (roundOpeningInterval) clearInterval(roundOpeningInterval);
+      roundOpeningInterval = null;
+    }
+
+    function startRoundOpening() {
+      if (!game) return alert('Сначала запусти игру.');
+      if (!isCurrentHost()) return alert('Старт раунда может запускать только ведущий.');
+      if (game.roundOpeningActive) return alert('Раунд уже идёт.');
+
+      const queue = alivePlayers().map(p => p.id);
+      if (!queue.length) return;
+
+      game.roundOpeningActive = true;
+      game.eventCheckedThisRound = false;
+      game.turnQueue = queue;
+      game.turnIndex = 0;
+      game.currentTurnPlayerId = queue[0];
+      game.turnTimeLeft = 10;
+      game.turnCooldownLeft = 0;
+      log(`Раунд ${game.round}: старт раскрытия характеристик. Первый игрок: ${byId(game.currentTurnPlayerId)?.name || 'игрок'}.`);
+      saveState();
+      renderAll();
+
+      clearRoundOpeningTimer();
+      roundOpeningInterval = setInterval(handleRoundOpeningTick, 1000);
+    }
+
+    function handleRoundOpeningTick() {
+      if (!game || !game.roundOpeningActive) {
+        clearRoundOpeningTimer();
+        return;
+      }
+
+      
+
+      game.turnTimeLeft--;
+      if (game.turnTimeLeft <= 0) {
+        const current = byId(game.currentTurnPlayerId);
+        if (current) log(`${current.name}: время на открытие характеристики закончилось.`);
+        game.currentTurnPlayerId = null;
+        moveToNextTurnPlayer();
+      }
+
+      saveState();
+      renderAll();
+    }
+
+    function moveToNextTurnPlayer() {
+      if (!game || !game.roundOpeningActive) return;
+      game.turnIndex++;
+
+      if (game.turnIndex >= game.turnQueue.length) {
+        finishRoundOpening();
+        return;
+      }
+
+      game.currentTurnPlayerId = game.turnQueue[game.turnIndex];
+      game.turnTimeLeft = 10;
+      game.turnCooldownLeft = 0;
+      const current = byId(game.currentTurnPlayerId);
+      if (current) log(`Очередь открытия характеристики: ${current.name}.`);
+    }
+
+    function forceRoundEvent() {
+      if (!game) return;
+      if (game.activeEvent && !game.activeEvent.resolved) return alert('Событие уже активно.');
+      game.eventCheckedThisRound = false;
+      maybeTriggerRoundEvent();
+      if (!game.activeEvent) {
+        const story = randomFrom(roundEventStories);
+        game.activeEvent = { type: 'hidden_box', joinedBy: null, resolved: false, result: '', title: story.title, story: story.story };
+      }
+      saveState();
+      renderAll();
+    }
+
+    function finishRoundOpening() {
+      if (!game) return;
+      clearRoundOpeningTimer();
+      game.roundOpeningActive = false;
+      game.currentTurnPlayerId = null;
+      game.turnTimeLeft = 0;
+      game.turnCooldownLeft = 0;
+      log('Все игроки завершили этап открытия характеристик.');
+
+      if (!game.eventCheckedThisRound) {
+        game.eventCheckedThisRound = true;
+        maybeTriggerRoundEvent();
+      }
+
+      saveState();
+      renderAll();
+    }
+
+    function startVotingPhase() {
+      if (!game) return alert('Сначала запусти игру.');
+      if (!isCurrentHost()) return alert('Запустить голосование может только ведущий.');
+      game.votingOpen = true;
+      votes = {};
+      log('Ведущий запустил анонимное голосование.');
+    }
+
+    function reveal(playerId, key) {
+      const p = byId(playerId);
+      if (!p || !p.alive || p.exiled) return;
+      p.revealed[key] = true;
+      log(`${p.name} раскрывает: ${label(key)} — ${p.cards[key]}.`);
+    }
+
+    function label(key) {
+      return {
+        profession:'Профессия', health:'Здоровье', bodyType:'Телосложение', hobby:'Хобби', biology:'Пол/возраст', skill:'Навык', backpack:'Рюкзак', inventory:'Инвентарь', character:'Характер', phobia:'Фобия', fact:'Факт 1', fact2:'Факт 2', special1:'Спец. возможность 1', special2:'Спец. возможность 2'
+      }[key];
+    }
+
+    function vote(targetId) {
+      if (!game || !game.votingOpen) return alert('Голосование ещё не запущено ведущим.');
+      const voterKey = nickname || 'Игрок';
+      votes[voterKey] = Number(targetId);
+      renderVoting();
+    }
+
+    function finishVoting() {
+      if (!game) return;
+      if (!isCurrentHost()) return alert('Завершить голосование может только ведущий.');
+      if (alivePlayers().length <= game.seats) return showWinners();
+
+      const count = {};
+      Object.values(votes).forEach(id => count[id] = (count[id] || 0) + 1);
+      const sorted = Object.entries(count).sort((a,b) => b[1] - a[1]);
+      if (!sorted.length) return alert('Голосов ещё нет.');
+
+      const active = alivePlayers();
+      const allHaveOneVote = sorted.length === active.length && sorted.every(([, amount]) => amount === 1);
+      if (allHaveOneVote) {
+        votes = {};
+        game.votingOpen = false;
+        game.round++;
+        game.eventCheckedThisRound = false;
+        log('У всех игроков по 1 голосу. Раунд пропущен без изгнания. Начинается следующий раунд.');
+        saveState();
+        renderAll();
+        return;
+      }
+
+      const maxVotes = sorted[0][1];
+      const leaders = sorted.filter(([, amount]) => amount === maxVotes).map(([id]) => Number(id));
+      const targetId = leaders.length > 1 ? leaders[Math.floor(Math.random() * leaders.length)] : leaders[0];
+      const p = byId(targetId);
+      if (!p) return;
+
+      p.alive = false;
+      p.exiled = true;
+      p.status = 'изгнан';
+      votes = {};
+      game.votingOpen = false;
+
+      if (leaders.length > 1) log(`Ничья среди лидеров голосования. Случайно изгнан: ${p.name}. Теперь он наблюдает за игрой.`);
+      else log(`${p.name} изгнан из бункера. Теперь он наблюдает за игрой.`);
+
+      game.round++;
+      game.eventCheckedThisRound = false;
+      saveState();
+      if (alivePlayers().length <= game.seats) return showWinners();
+      renderAll();
+    }
+
+    function showWinners() {
+      if (!game) return;
+      game.players.forEach(p => p.winner = p.alive && !p.exiled && alivePlayers().length <= game.seats);
+      const winners = game.players.filter(p => p.winner).map(p => p.name).join(', ');
+      const losers = game.players.filter(p => p.exiled || !p.alive).map(p => p.name).join(', ');
+      game.finalSummary = `Комната: ${game.roomId}<br>Раундов: ${game.round}<br>Мест в бункере: ${game.seats}<br>Выживать: ${game.years} лет<br><br><strong>Выжившие:</strong> ${winners || 'нет'}<br><strong>Изгнанные/погибшие:</strong> ${losers || 'нет'}`;
+      const r = room();
+      if (r) r.status = 'Завершена';
+      log(`Финал. В бункер проходят: ${winners || 'никто'}.`);
+      saveState();
+      showPage('chronicles');
+    }
+
+    function setFilter(value) { filter = value; renderPlayers(); renderTabs(); }
+
+    function startTimer() {
+      pauseTimer();
+      timerInterval = setInterval(() => {
+        timerLeft--;
+        if (timerLeft <= 0) { timerLeft = 0; pauseTimer(); log('Время ведущего вышло.'); }
+        renderTimer();
+      }, 1000);
+    }
+    function pauseTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+    function setHostTimer() {
+      const select = document.getElementById('hostTimerSelect');
+      if (!select) return;
+      timerTotal = Number(select.value);
+      timerLeft = timerTotal;
+      const r = room();
+      if (r) r.timer = timerTotal;
+      saveState();
+      renderTimer();
+    }
+    function resetTimer() { pauseTimer(); timerLeft = timerTotal || 120; renderTimer(); }
+
+    function renderTimer() {
+      const timerEl = document.getElementById('timer');
+      const barEl = document.getElementById('timerBar');
+      if (!timerEl || !barEl) return;
+      const m = String(Math.floor(timerLeft / 60)).padStart(2, '0');
+      const s = String(timerLeft % 60).padStart(2, '0');
+      timerEl.textContent = `${m}:${s}`;
+      barEl.style.width = (timerTotal ? ((timerTotal - timerLeft) / timerTotal) * 100 : 0) + '%';
+    }
+
+    function renderHome() {
+      document.getElementById('currentNameView') && (document.getElementById('currentNameView').textContent = nickname || '—');
+    }
+
+    function renderActiveRooms() {
+      const box = document.getElementById('activeRoomsGrid');
+      if (!box) return;
+      const active = rooms.filter(r => r.status !== 'Завершена');
+      box.innerHTML = '';
+      if (!active.length) { box.innerHTML = '<p class="small">Активных лобби пока нет.</p>'; return; }
+      active.forEach(r => {
+        const el = document.createElement('div');
+        el.className = 'room-card';
+        const alreadyInside = r.players.some(p => p.name === nickname);
+        const buttonText = r.status === 'Игра идёт'
+          ? (alreadyInside ? 'Вернуться в матч' : 'Переподключиться к матчу')
+          : (alreadyInside ? 'Вернуться в лобби' : 'Войти в лобби');
+
+        el.innerHTML = `
+          <div class="card-title"><h3>${r.name}</h3><span class="badge">${r.status}</span></div>
+          <p class="small">ID: <strong>${r.id}</strong> · Ведущий: <span class="host-label">${r.host}</span></p>
+          <div class="kv">
+            <div><span>Пак</span><strong>${r.packName}</strong></div>
+            <div><span>Игроки</span><strong>${r.players.length}/${r.maxPlayers}</strong></div>
+            <div><span>Мест</span><strong>${r.seats}</strong></div>
+            <div><span>Выживать</span><strong>${r.years} лет</strong></div>
+          </div>
+          <button style="margin-top:12px;" onclick="joinLobby('${r.id}')">${buttonText}</button>
+        `;
+        box.appendChild(el);
+      });
+    }
+
+    function renderLobby() {
+      const r = room();
+      if (!r) return;
+      document.getElementById('lobbyCodeView').textContent = r.id;
+      document.getElementById('bigRoomCode').textContent = r.id;
+      document.getElementById('lobbyHostView').textContent = r.host;
+      document.getElementById('lobbyPackView').textContent = r.packName;
+      document.getElementById('lobbyCountView').textContent = `${r.players.length}/${r.maxPlayers}`;
+      document.getElementById('lobbyNameView').textContent = r.name;
+      document.getElementById('lobbyStatusView').textContent = r.status;
+      document.getElementById('lobbySeatsView').textContent = r.seats;
+      document.getElementById('lobbyYearsView').textContent = `${r.years} лет`;
+
+      const controls = document.getElementById('lobbyControls');
+      if (controls) {
+        if (isCurrentHost()) {
+          controls.innerHTML = `
+            <button class="good" onclick="startGameFromLobby()">Запустить лобби</button>
+            <button class="secondary" onclick="addBotPlayer()">Добавить бота для теста</button>
+            <button class="danger" onclick="closeCurrentLobby()">Закрыть комнату</button>
+            <p class="small">Только ведущий может запускать лобби и добавлять ботов.</p>
+          `;
+        } else {
+          controls.innerHTML = `
+            <button class="secondary" onclick="closeCurrentLobby()">Покинуть лобби</button>
+            <p class="small">Ожидайте запуска матча ведущим.</p>
+          `;
+        }
+      }
+
+      if (r.status === 'Игра идёт' && game && localStorage.getItem('bz_current_page') === 'lobby') {
+        setTimeout(() => showPage('game'), 0);
+      }
+
+      const box = document.getElementById('lobbyPlayersGrid');
+      box.innerHTML = '';
+      r.players.forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'player-card';
+        el.innerHTML = `<div class="player-title"><h3>${p.name}</h3><span class="badge">${p.host ? 'ведущий' : p.bot ? 'бот' : 'игрок'}</span></div><p class="small">Статус: готов</p>`;
+        box.appendChild(el);
+      });
+    }
+
+    function renderGame() {
+      if (!game) return;
+      if (game.roomId && currentRoomId !== game.roomId) {
+        currentRoomId = game.roomId;
+        localStorage.setItem('bz_current_room', currentRoomId);
+        subscribeCurrentRoom();
+      }
+
+      document.querySelectorAll('.host-only').forEach(el => {
+        el.style.display = isCurrentGameHost() ? '' : 'none';
+      });
+
+      document.getElementById('statRound').textContent = game.round;
+      document.getElementById('statSeats').textContent = game.seats;
+      document.getElementById('statAlive').textContent = alivePlayers().length;
+      document.getElementById('scenario').textContent = game.scenario;
+      document.getElementById('bunkerInfo').textContent = game.bunker;
+      document.getElementById('gameYearsView').textContent = `${game.years} лет`;
+      document.getElementById('gameFoodView').textContent = game.food;
+      document.getElementById('gameWaterView').textContent = game.water;
+      document.getElementById('gameConditionView').textContent = game.condition;
+      document.getElementById('log').innerHTML = game.history.map(h => `<div>${h}</div>`).join('');
+      renderPlayers();
+      renderVoting();
+      renderRoundEvent();
+    }
+
+    function renderRoundEvent() {
+      const panel = document.getElementById('eventPanel');
+      const content = document.getElementById('eventContent');
+      const button = document.getElementById('joinEventButton');
+      if (!panel || !content || !button) return;
+
+      if (!game || !game.activeEvent) {
+        panel.style.display = 'none';
+        hideToast();
+        return;
+      }
+
+      panel.style.display = 'block';
+      const ev = game.activeEvent;
+      if (ev.resolved) {
+        content.innerHTML = `<div class="event-outcome">${ev.result}</div>`;
+        button.disabled = true;
+        button.textContent = 'Событие завершено';
+        hideToast();
+        return;
+      }
+
+      showToast('Началось событие раунда: опасная вылазка. Первый нажавший участвует.', 0, true);
+
+      content.innerHTML = `
+        <strong>${ev.title || 'Опасная вылазка'}</strong><br><br>
+        ${ev.story || 'В опасной зоне найден подозрительный ящик. Первый игрок, нажавший участие, отправляется за добычей.'}<br><br>
+        Исход вылазки неизвестен. Бункер не обязан быть честным.
+      `;
+      button.disabled = false;
+      button.textContent = 'Участвовать';
+    }
+
+    function renderTabs() {
+      ['All','Alive','Dead'].forEach(name => document.getElementById('tab' + name)?.classList.remove('active'));
+      document.getElementById('tab' + (filter === 'all' ? 'All' : filter === 'alive' ? 'Alive' : 'Dead'))?.classList.add('active');
+    }
+
+    function renderPlayers() {
+      const grid = document.getElementById('playersGrid');
+      if (!grid || !game) return;
+      let list = [...game.players];
+      if (filter === 'alive') list = list.filter(p => p.alive && !p.exiled);
+      if (filter === 'dead') list = list.filter(p => !p.alive || p.exiled);
+      grid.innerHTML = '';
+      list.forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'player-card compact'
+          + (p.exiled || !p.alive ? ' dead exiled' : '')
+          + (p.winner ? ' winner' : '')
+          + (game.currentTurnPlayerId === p.id ? ' active-turn-card' : '');
+        el.innerHTML = `
+          <div class="player-title">
+            <div>
+              <h3>${p.name}</h3>
+              <div class="private-note">${p.name === nickname ? 'Твои характеристики видны тебе. Остальным показывай только открытые карты.' : 'Карточка игрока. В онлайн-версии закрытые данные будут видны только владельцу.'}</div>
+              ${turnStatusHtml(p)}
+            </div>
+            <span class="badge">${p.winner ? 'выжил' : p.status === 'погиб' ? 'погиб · наблюдает' : p.exiled ? 'изгнан · наблюдает' : p.alive ? (p.host ? 'ведущий' : 'в игре') : 'изгнан · наблюдает'}</span>
+          </div>
+          <div class="traits-board">
+            ${traitHtml(p, 'biology')}
+            ${traitHtml(p, 'health')}
+            ${traitHtml(p, 'bodyType')}
+            ${traitHtml(p, 'profession')}
+            ${traitHtml(p, 'hobby')}
+            ${traitHtml(p, 'skill')}
+            ${traitHtml(p, 'backpack')}
+            ${traitHtml(p, 'inventory')}
+            ${traitHtml(p, 'character')}
+            ${traitHtml(p, 'phobia')}
+            ${traitHtml(p, 'fact')}
+            ${traitHtml(p, 'fact2')}
+          </div>
+          <div class="specials-row">
+            ${traitHtml(p, 'special1')}
+            ${traitHtml(p, 'special2')}
+          </div>
+        `;
+        grid.appendChild(el);
+      });
+    }
+
+    function turnStatusHtml(p) {
+      if (!game || !game.roundOpeningActive) return '';
+      if (game.currentTurnPlayerId === p.id) return `<div class="turn-timer">Открытие характеристики: ${game.turnTimeLeft} сек.</div>`;
+      return '';
+    }
+
+    function traitHtml(p, key) {
+      const isOwner = p.name === nickname;
+      const canSee = isOwner || p.revealed[key] || !p.alive || p.exiled || p.winner;
+      const value = canSee ? (key === 'health' ? healthView(p) : p.cards[key]) : '<span class="hidden">закрыто</span>';
+      const button = p.alive && !p.exiled && !p.revealed[key] ? `<button class="secondary" onclick="reveal(${p.id}, '${key}')">Открыть</button>` : '';
+      return `<div class="trait"><div><strong>${label(key)}:</strong> ${value}</div>${button}</div>`;
+    }
+
+    function renderVoting() {
+      const panel = document.getElementById('votingPanel');
+      const box = document.getElementById('anonymousVoteList');
+      if (!panel || !box || !game) return;
+
+      panel.style.display = game.votingOpen ? 'block' : 'none';
+      box.innerHTML = '';
+      if (!game.votingOpen) return;
+
+      const alive = alivePlayers();
+      const totalVotes = Object.keys(votes).length;
+      const counts = {};
+      Object.values(votes).forEach(id => counts[id] = (counts[id] || 0) + 1);
+      const votedAlready = votes[nickname || 'Игрок'];
+
+      alive.forEach(p => {
+        const amount = counts[p.id] || 0;
+        const percent = totalVotes ? Math.round((amount / totalVotes) * 100) : 0;
+        const el = document.createElement('div');
+        el.className = 'vote-item';
+        el.innerHTML = `
+          <div class="vote-head">
+            <strong>${p.name}</strong>
+            <span class="badge">${amount} голосов · ${percent}%</span>
+          </div>
+          <div class="vote-bar"><div style="width:${percent}%"></div></div>
+          <button class="secondary" style="margin-top:10px;" onclick="vote(${p.id})" ${votedAlready ? 'disabled' : ''}>Проголосовать</button>
+        `;
+        box.appendChild(el);
+      });
+
+      if (isCurrentHost()) {
+        const finish = document.createElement('button');
+        finish.className = 'danger';
+        finish.style.marginTop = '12px';
+        finish.textContent = 'Завершить голосование и изгнать';
+        finish.onclick = finishVoting;
+        box.appendChild(finish);
+      } else {
+        const note = document.createElement('p');
+        note.className = 'small';
+        note.textContent = 'Завершить голосование может только ведущий.';
+        box.appendChild(note);
+      }
+    }
+
+    function renderChronicles() {
+      const summary = document.getElementById('chroniclesSummary');
+      const logBox = document.getElementById('chroniclesLog');
+      if (!summary || !logBox) return;
+      summary.innerHTML = game?.finalSummary || 'Игра ещё не завершена.';
+      logBox.innerHTML = game?.history?.map(h => `<div>${h}</div>`).join('') || '';
+    }
+
+    function chroniclesText() {
+      const summary = (game?.finalSummary || 'Игра ещё не завершена.').replaceAll('<br>', '\n').replace(/<[^>]*>/g, '');
+      return `Бункер: Судный день\n\n${summary}\n\nЛетопись:\n${game?.history?.join('\n') || ''}`;
+    }
+
+    function exportChronicles() {
+      const blob = new Blob([chroniclesText()], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bunker-chronicles.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function copyChronicles() { navigator.clipboard.writeText(chroniclesText()).then(() => alert('Хроники скопированы.')); }
+
+    function renderAll() {
+      renderHome();
+      renderActiveRooms();
+      renderLobby();
+      renderGame();
+      renderTabs();
+      renderTimer();
+      renderChronicles();
+    }
+
+    function restorePageAfterReload() {
+      const allowedPages = ['home', 'find', 'create', 'lobby', 'game', 'chronicles'];
+
+      if (!nickname) {
+        showPage('register');
+        return;
+      }
+
+      const savedPage = localStorage.getItem('bz_current_page');
+
+      if (savedPage === 'game' && game) {
+        showPage('game');
+        return;
+      }
+
+      if (savedPage === 'lobby' && currentRoomId) {
+        showPage('lobby');
+        return;
+      }
+
+      if (savedPage === 'chronicles' && game) {
+        showPage('chronicles');
+        return;
+      }
+
+      if (allowedPages.includes(savedPage)) {
+        showPage(savedPage);
+        return;
+      }
+
+      showPage('home');
+    }
+
+    initOnline();
+    restorePageAfterReload();
+</script>
+</body>
+</html>
