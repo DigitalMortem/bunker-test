@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BUNKER LAST HOPE</title>
+  <link rel="icon" href="assets/icons/favicon.ico" sizes="any" />
+  <link rel="shortcut icon" href="assets/icons/favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="assets/icons/favicon.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div id="toast" class="toast"></div>
+  <div id="eventModalBackdrop" class="event-modal-backdrop">
+    <div class="event-modal">
+      <h2>Исход события</h2>
+      <div id="eventModalContent" class="event-modal-content"></div>
+      <button class="secondary" style="margin-top:16px;" onclick="hideEventModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="specialModalBackdrop" class="event-modal-backdrop">
+    <div class="event-modal">
+      <h2>Спецвозможность</h2>
+      <div id="specialModalContent" class="event-modal-content"></div>
+      <button class="secondary" style="margin-top:16px;" onclick="hideSpecialModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="finalModalBackdrop" class="event-modal-backdrop">
+    <div class="event-modal">
+      <h2>Итоги партии</h2>
+      <div id="finalModalContent" class="event-modal-content"></div>
+      <div class="row" style="justify-content:center; margin-top:16px;">
+        <button class="good" onclick="hideFinalModal(); showPage('game')">Вернуться к карточкам</button>
+        <button class="secondary" onclick="hideFinalModal(); showPage('chronicles')">Хроники</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="kickModalBackdrop" class="event-modal-backdrop">
+    <div class="event-modal">
+      <h2>Вас изгнали</h2>
+      <div id="kickModalContent" class="event-modal-content"></div>
+      <div class="row" style="justify-content:center; margin-top:16px;">
+        <button class="good" onclick="hideKickModal()">Вернуться к лобби</button>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="topbar">
+      <div class="header-center">
+        <h1><span style="color:#ffffff;">BUNKER</span> <span class="title-accent">LAST HOPE</span></h1>
+        <p id="headerSubtitle"></p>
+      </div>
+
+      <div id="playerHeaderInfo" class="player-header-info" style="display:none;">
+        Игрок: <strong id="playerHeaderNickname"></strong>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="page-register" class="page active">
+      <div class="hero">
+        <div class="hero-card">
+          <h2>Регистрация игрока</h2>
+          <p class="muted">Для входа нужен только никнейм. Без паролей, почты и лишних полей.</p>
+          <div class="row" style="justify-content:center; margin-top:18px;">
+            <input id="nicknameInput" maxlength="16" placeholder="Введите никнейм" onkeydown="if(event.key==='Enter') saveNickname()" />
+            <button onclick="saveNickname()">Войти</button>
+          </div>
+          <p class="small">После входа откроется главная страница с созданием и поиском лобби.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-home" class="page">
+      <div class="hero">
+        <div class="hero-card">
+          <h2>Главная</h2>
+          <p>Игрок: <strong id="currentNameView">—</strong></p>
+          <div class="row" style="justify-content:center; margin-top:12px;">
+            <input id="changeNicknameInput" maxlength="16" placeholder="Новый никнейм" />
+            <button class="secondary" onclick="changeNickname()">Сменить ник</button>
+          </div>
+          <div class="hero-actions">
+            <button class="big" onclick="openCreateLobby()">Создать лобби</button>
+            <button class="big secondary" onclick="showPage('find')">Найти лобби</button>
+            
+          </div>
+          <p class="small"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-find" class="page">
+      <section class="panel">
+        <div class="card-title">
+          <div>
+            <h2>Активные лобби</h2>
+            <p class="small">Здесь показываются созданные и ещё не завершённые комнаты.</p>
+          </div>
+          <button class="secondary" onclick="showPage('home')">Назад</button>
+        </div>
+        <div class="row" style="margin-bottom:14px;">
+          <input id="joinRoomIdInput" placeholder="Введите ID комнаты" maxlength="8" onkeydown="if(event.key==='Enter') joinLobbyById()" />
+          <button onclick="joinLobbyById()">Войти по ID</button>
+        </div>
+        <div id="activeRoomsGrid" class="grid"></div>
+      </section>
+    </section>
+
+    <section id="page-create" class="page">
+      <section class="panel">
+        <div class="card-title">
+          <div>
+            <h2>Создание лобби</h2>
+            <p class="small">Выбери тему, размер комнаты и базовые правила.</p>
+          </div>
+          <button class="secondary" onclick="showPage('home')">Назад</button>
+        </div>
+        <div class="split">
+          <div>
+            <label class="small">Название комнаты</label><br>
+            <input id="lobbyName"  style="width:100%; margin:6px 0 12px;" />
+          </div>
+          <div>
+            <label class="small">Пак/тема игры</label><br>
+            <select id="packSelect" style="width:100%; margin:6px 0 12px;">
+              <option value="classic" selected>Классический</option>
+              <option value="apocalypse">Апокалипсис</option>
+              <option value="zombie">Зомби</option>
+              <option value="fantasy">Фэнтези</option>
+              <option value="maniac">Маньяк</option>
+              <option value="space">Космос</option>
+              <option value="virus">Вирус</option>
+              <option value="winter">Ледниковый период</option>
+              <option value="cyber">Киберпанк</option>
+              <option value="island">Остров после катастрофы</option>
+              <option value="underwater">Подводный бункер</option>
+            </select>
+          </div>
+          <div>
+            <label class="small">Всего игроков</label><br>
+            <select id="maxPlayersSelect" style="width:100%; margin:6px 0 12px;">
+              <option value="4">4 игрока</option>
+              <option value="5">5 игроков</option>
+              <option value="6" selected>6 игроков</option>
+              <option value="7">7 игроков</option>
+              <option value="8">8 игроков</option>
+              <option value="10">10 игроков</option>
+              <option value="12">12 игроков</option>
+            </select>
+          </div>
+          <div>
+            <label class="small">Мест в бункере</label><br>
+            <select id="seatSelect" style="width:100%; margin:6px 0 12px;">
+              <option value="2">2 места</option>
+              <option value="3">3 места</option>
+              <option value="4">4 места</option>
+              <option value="5">5 мест</option>
+              <option value="6">6 мест</option>
+            </select>
+          </div>
+        </div>
+        <button class="good big" onclick="createLobbyFromForm()">Создать комнату</button>
+      </section>
+    </section>
+
+    <section id="page-lobby" class="page">
+      <div class="topbar">
+        <div class="stat"><span>ID комнаты</span><strong id="lobbyCodeView">----</strong></div>
+        <div class="stat"><span>Ведущий</span><strong id="lobbyHostView">—</strong></div>
+        <div class="stat"><span>Пак</span><strong id="lobbyPackView">—</strong></div>
+        <div class="stat"><span>Игроки</span><strong id="lobbyCountView">0/0</strong></div>
+      </div>
+
+      <div class="layout">
+        <section>
+          <section class="panel">
+            <div class="card-title">
+              <div>
+                <h2>Лобби ожидания</h2>
+                <p class="small">Здесь видны ID комнаты, ведущий, статус и основные параметры партии.</p>
+              </div>
+              <button class="secondary" onclick="showPage('home')">Главная</button>
+            </div>
+            <div class="room-code" id="bigRoomCode">----</div>
+            <div class="kv">
+              <div><span>Название</span><strong id="lobbyNameView">—</strong></div>
+              <div><span>Статус</span><strong id="lobbyStatusView">—</strong></div>
+              <div><span>Мест в бункере</span><strong id="lobbySeatsView">—</strong></div>
+              <div><span>Выживать</span><strong id="lobbyYearsView">—</strong></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Управление лобби</h2>
+            <div id="lobbyControls"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Подключенные игроки</h2>
+            <div id="lobbyPlayersGrid" class="grid"></div>
+          </section>
+        </section>
+      </div>
+    </section>
+
+    <section id="page-game" class="page">
+      <div class="topbar">
+        <div class="stat"><span>Раунд</span><strong id="statRound">0</strong></div>
+        <div class="stat"><span>Мест</span><strong id="statSeats">—</strong></div>
+        <div class="stat"><span>Живых</span><strong id="statAlive">0</strong></div>
+      </div>
+
+      <div class="layout">
+        <div class="game-main">
+          <section>
+            <section class="panel">
+              <div class="card-title">
+                <h2>Состояние бункера</h2>
+                <div class="row">
+                  <button id="gameChroniclesButton" class="secondary" onclick="showPage('chronicles')" style="display:none;">Хроники</button>
+                  <button class="secondary" onclick="showPage('home')">Главная</button>
+                </div>
+              </div>
+              <div id="scenario" class="scenario">Сценарий появится после запуска.</div>
+              <div id="bunkerInfo" class="bunker-card muted">Параметры бункера появятся после запуска.</div>
+              <div class="kv">
+                <div><span>Выживать</span><strong id="gameYearsView">—</strong></div>
+                <div><span>Еды осталось</span><strong id="gameFoodView">—</strong></div>
+                <div><span>Воды осталось</span><strong id="gameWaterView">—</strong></div>
+                <div><span>Состояние</span><strong id="gameConditionView">—</strong></div>
+              </div>
+              <div class="row" style="margin-top:12px;">
+                <button class="good host-only" onclick="startRoundOpening()">Старт</button>
+                <button class="ghost host-only" onclick="startVotingPhase()">Запустить голосование</button>
+                <button class="secondary host-only" onclick="forceRoundEvent()">Запустить событие</button>
+              </div>
+            </section>
+
+            <section class="panel" id="votingPanel" style="display:none;">
+              <h2>Голосование</h2>
+              <p class="small">Голосование анонимное. После голоса отображается количество голосов и процент рядом с каждым игроком.</p>
+              <div id="anonymousVoteList" class="vote-list"></div>
+            </section>
+
+            <section class="panel">
+              <h2>Игроки и характеристики</h2>
+              <div class="tabs">
+                <button class="secondary active" id="tabAll" onclick="setFilter('all')">Все</button>
+                <button class="secondary" id="tabAlive" onclick="setFilter('alive')">В игре</button>
+                <button class="secondary" id="tabDead" onclick="setFilter('dead')">Исключённые</button>
+              </div>
+              <div id="playersGrid" class="players-list"></div>
+            </section>
+          </section>
+          <section class="panel round-event-panel" id="eventPanel" style="display:none;">
+              <h2>Событие раунда</h2>
+              <div id="eventContent" class="event-card">Событие пока не активно.</div>
+              <button id="joinEventButton" class="secondary" onclick="joinRoundEvent()">Участвовать</button>
+            </section>
+        </div>
+
+        <section class="panel">
+          <h2>Журнал</h2>
+          <div id="log" class="log"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="page-chronicles" class="page">
+      <section class="panel">
+        <h2>Итоги партии</h2>
+        <div id="chroniclesSummary" class="history-card muted">Игра ещё не завершена.</div>
+        <div class="row">
+          <button onclick="exportChronicles()">Скачать хроники</button>
+          
+          <button class="secondary" onclick="showPage('home')">Главная</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Летопись событий</h2>
+        <div id="chroniclesLog" class="log"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/packs/registry.js"></script>
+  <script src="js/packs/classic/scenarios.js"></script>
+  <script src="js/packs/classic/events.js"></script>
+  <script src="js/packs/classic/diseases.js"></script>
+  <script src="js/packs/classic/cards.js"></script>
+  <script src="js/packs/apocalypse.js"></script>
+  <script src="js/packs/zombie.js"></script>
+  <script src="js/packs/fantasy.js"></script>
+  <script src="js/packs/maniac.js"></script>
+  <script src="js/packs/space.js"></script>
+  <script src="js/packs/virus.js"></script>
+  <script src="js/packs/winter.js"></script>
+  <script src="js/packs/cyber.js"></script>
+  <script src="js/packs/island.js"></script>
+  <script src="js/packs/underwater.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
